@@ -4,6 +4,13 @@ export function normalizeOneLine(s: string): string {
   return s.replaceAll(/\s+/g, ' ').trim();
 }
 
+function indentBlock(text: string, prefix = '  '): string {
+  return text
+    .split('\n')
+    .map((line) => (line.length ? prefix + line : line))
+    .join('\n');
+}
+
 type Group<T> = { key: string; items: T[] };
 
 export function groupByKey<T>(items: T[], keyFn: (t: T) => string): Group<T>[] {
@@ -186,12 +193,12 @@ export function formatPrPlanText(input: {
 
   lines.push(`Review comments (${comments.length})`);
   if (comments.length === 0) lines.push('  (none)');
-  else lines.push(formatCommentsGrouped(comments).trimEnd());
+  else lines.push(indentBlock(formatCommentsGrouped(comments).trimEnd()));
   lines.push('');
 
   lines.push(`Checks (${checks.length})`);
   if (checks.length === 0) lines.push('  (none)');
-  else lines.push(formatChecksGrouped(checks).trimEnd());
+  else lines.push(indentBlock(formatChecksGrouped(checks).trimEnd()));
 
   return lines.join('\n').trimEnd() + '\n';
 }

@@ -119,16 +119,18 @@ describe('text formatters', () => {
   it('includes bucket counts in the plan summary when checks exist', () => {
     const out = formatPrPlanText({
       pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },
-      comments: [{
-        id: 1,
-        pullRequestReviewId: null,
-        userLogin: 'alice',
-        path: 'a.ts',
-        position: 1,
-        body: 'x',
-        createdAt: 'x',
-        htmlUrl: 'u',
-      }],
+      comments: [
+        {
+          id: 1,
+          pullRequestReviewId: null,
+          userLogin: 'alice',
+          path: 'a.ts',
+          position: 1,
+          body: 'x',
+          createdAt: 'x',
+          htmlUrl: 'u',
+        },
+      ],
       checks: [
         { id: 1, name: 'lint', status: 'completed', conclusion: 'success', detailsUrl: null },
         { id: 2, name: 'test', status: 'completed', conclusion: 'failure', detailsUrl: 'd' },
@@ -140,5 +142,27 @@ describe('text formatters', () => {
     expect(out).toContain('failed=1');
     expect(out).toContain('pending=1');
     expect(out).toContain('success=1');
+  });
+
+  it('indents grouped blocks under plan sections', () => {
+    const out = formatPrPlanText({
+      pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },
+      comments: [
+        {
+          id: 1,
+          pullRequestReviewId: null,
+          userLogin: 'alice',
+          path: 'a.ts',
+          position: 1,
+          body: 'x',
+          createdAt: 'x',
+          htmlUrl: 'u',
+        },
+      ],
+      checks: [{ id: 1, name: 'CI / test', status: 'completed', conclusion: 'failure', detailsUrl: null }],
+    });
+
+    expect(out).toContain('Review comments (1)\n  a.ts (1)');
+    expect(out).toContain('Checks (1)\n  failed (1)');
   });
 });

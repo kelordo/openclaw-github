@@ -46,4 +46,6 @@ success (2)
 ### `pr plan`
 `pr plan` prints a short PR header, a summary (counts), followed by grouped comments and checks.
 
+The grouped comment/check blocks are indented under their section headers to keep the overall output readable.
+
 Use `--json` if you want to feed an agent or script.

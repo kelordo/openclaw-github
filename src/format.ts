@@ -17,6 +17,13 @@ export function groupByKey<T>(items: T[], keyFn: (t: T) => string): Group<T>[] {
   return [...map.entries()].map(([key, items]) => ({ key, items }));
 }
 
+function compareNullableNumber(a: number | null, b: number | null): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return a - b;
+}
+
 export function formatCommentsGrouped(comments: ReviewComment[]): string {
   if (comments.length === 0) return '';
 
@@ -24,11 +31,23 @@ export function formatCommentsGrouped(comments: ReviewComment[]): string {
   const lines: string[] = [];
 
   for (const g of groups) {
-    lines.push(g.key);
-    for (const c of g.items) {
+    lines.push(`${g.key} (${g.items.length})`);
+
+    const sorted = [...g.items].sort((a, b) => {
+      const posCmp = compareNullableNumber(a.position, b.position);
+      if (posCmp !== 0) return posCmp;
+      // createdAt is ISO from GitHub; lexical sort works, but keep safe.
+      const dateCmp = a.createdAt.localeCompare(b.createdAt);
+      if (dateCmp !== 0) return dateCmp;
+      return a.id - b.id;
+    });
+
+    for (const c of sorted) {
       const who = c.userLogin ?? 'unknown';
       const body = normalizeOneLine(c.body);
-      lines.push(`  - #${c.id} ${who}${c.position != null ? ` (pos ${c.position})` : ''}: ${body}`);
+      const pos = c.position != null ? ` (pos ${c.position})` : '';
+      const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+      lines.push(`  - #${c.id} ${who}${pos}: ${body}${url}`);
     }
     lines.push('');
   }
@@ -67,7 +86,7 @@ export function formatChecksGrouped(runs: CheckRunSummary[]): string {
     const items = buckets.get(b);
     if (!items || items.length === 0) continue;
 
-    lines.push(b);
+    lines.push(`${b} (${items.length})`);
     const sorted = [...items].sort((a, c) => a.name.localeCompare(c.name));
     for (const r of sorted) {
       const concl = r.conclusion ?? '-';

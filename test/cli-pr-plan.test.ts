@@ -127,4 +127,34 @@ describe('cli pr plan', () => {
       process.stdout.write = origWrite;
     }
   });
+
+  it('accepts --pr-url as an alternative to --repo/--pr', async () => {
+    process.env.GITHUB_TOKEN = 'test-token';
+
+    const writes: string[] = [];
+    const origWrite = process.stdout.write;
+    process.stdout.write = (chunk: unknown) => {
+      writes.push(String(chunk));
+      return true;
+    };
+
+    try {
+      const code = await main([
+        'node',
+        'pr-autopilot',
+        'pr',
+        'plan',
+        '--pr-url',
+        'https://github.com/o/r/pull/1',
+        '--json',
+      ]);
+      expect(code).toBe(0);
+
+      const text = writes.join('');
+      const parsed = JSON.parse(text) as { pull: { number: number } };
+      expect(parsed.pull.number).toBe(1);
+    } finally {
+      process.stdout.write = origWrite;
+    }
+  });
 });

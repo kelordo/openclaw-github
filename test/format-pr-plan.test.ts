@@ -84,10 +84,12 @@ describe('formatPrPlanText', () => {
 
     const out = formatPrPlanText({ pull, comments, checks });
 
-    expect(out).toContain('Failing checks (1)');
+    expect(out).toContain('Checks needing attention (2)');
+
+    expect(out).toContain('- Failing (1)');
     expect(out).toContain('test (ubuntu): completed/failure https://example.com/fail');
 
-    expect(out).toContain('Pending checks (1)');
+    expect(out).toContain('- Pending (1)');
     expect(out).toContain('lint: in_progress https://example.com/pending');
   });
 });

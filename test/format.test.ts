@@ -340,8 +340,9 @@ describe('text formatters', () => {
     });
 
     expect(out).toContain('Action items');
-    expect(out).toContain('Failing checks (1)');
-    expect(out).toContain('Pending checks (1)');
+    expect(out).toContain('Checks needing attention (2)');
+    expect(out).toContain('- Failing (1)');
+    expect(out).toContain('- Pending (1)');
     expect(out).toContain('- test: completed/failure d1');
     expect(out).toContain('- build: in_progress d2');
   });

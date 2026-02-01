@@ -254,48 +254,40 @@ export function formatPrPlanText(input: {
   if (failedChecks.length || pendingChecks.length || comments.length) {
     lines.push('Action items');
 
-    if (failedChecks.length) {
-      lines.push(`  - Failing checks (${failedChecks.length})`);
-      const grouped = groupByKey(failedChecks, (r) => splitCheckName(r.name).group).sort(
-        (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
-      );
-      for (const g of grouped) {
-        const showHeader = !(grouped.length === 1 && g.key === 'checks');
-        if (showHeader) lines.push(`    ${g.key} (${g.items.length})`);
-        const sorted = [...g.items].sort((a, b) => {
-          const la = splitCheckName(a.name).label;
-          const lb = splitCheckName(b.name).label;
-          const cmp = la.localeCompare(lb);
-          return cmp !== 0 ? cmp : a.name.localeCompare(b.name);
-        });
-        for (const r of sorted) {
-          const { label } = splitCheckName(r.name);
-          const url = r.detailsUrl ?? '';
-          const prefix = showHeader ? '      -' : '    -';
-          lines.push(`${prefix} ${label}: ${formatCheckStatus(r)}${url ? ` ${url}` : ''}`);
-        }
-      }
-    }
+    const attentionChecks = [...failedChecks, ...pendingChecks];
+    if (attentionChecks.length) {
+      lines.push(`  - Checks needing attention (${attentionChecks.length})`);
 
-    if (pendingChecks.length) {
-      lines.push(`  - Pending checks (${pendingChecks.length})`);
-      const grouped = groupByKey(pendingChecks, (r) => splitCheckName(r.name).group).sort(
-        (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
-      );
-      for (const g of grouped) {
-        const showHeader = !(grouped.length === 1 && g.key === 'checks');
-        if (showHeader) lines.push(`    ${g.key} (${g.items.length})`);
-        const sorted = [...g.items].sort((a, b) => {
-          const la = splitCheckName(a.name).label;
-          const lb = splitCheckName(b.name).label;
-          const cmp = la.localeCompare(lb);
-          return cmp !== 0 ? cmp : a.name.localeCompare(b.name);
-        });
-        for (const r of sorted) {
-          const { label } = splitCheckName(r.name);
-          const url = r.detailsUrl ?? '';
-          const prefix = showHeader ? '      -' : '    -';
-          lines.push(`${prefix} ${label}: ${formatCheckStatus(r)}${url ? ` ${url}` : ''}`);
+      const sections: { label: string; items: CheckRunSummary[] }[] = [
+        { label: 'Failing', items: failedChecks },
+        { label: 'Pending', items: pendingChecks },
+      ];
+
+      for (const section of sections) {
+        if (section.items.length === 0) continue;
+        lines.push(`    - ${section.label} (${section.items.length})`);
+
+        const grouped = groupByKey(section.items, (r) => splitCheckName(r.name).group).sort(
+          (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
+        );
+
+        for (const g of grouped) {
+          const showHeader = !(grouped.length === 1 && g.key === 'checks');
+          if (showHeader) lines.push(`      ${g.key} (${g.items.length})`);
+
+          const sorted = [...g.items].sort((a, b) => {
+            const la = splitCheckName(a.name).label;
+            const lb = splitCheckName(b.name).label;
+            const cmp = la.localeCompare(lb);
+            return cmp !== 0 ? cmp : a.name.localeCompare(b.name);
+          });
+
+          for (const r of sorted) {
+            const { label } = splitCheckName(r.name);
+            const url = r.detailsUrl ?? '';
+            const prefix = showHeader ? '        -' : '      -';
+            lines.push(`${prefix} ${label}: ${formatCheckStatus(r)}${url ? ` ${url}` : ''}`);
+          }
         }
       }
     }

@@ -120,7 +120,7 @@ describe('cli pr plan', () => {
       expect(out).toContain('PR #1:');
       expect(out).toContain('Summary');
       expect(out).toContain('Action items');
-      expect(out).toContain('Failing checks');
+      expect(out).toContain('Checks needing attention');
       expect(out).toContain('Review comments');
       expect(out).toContain('Checks');
     } finally {

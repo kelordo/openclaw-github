@@ -181,7 +181,9 @@ export function formatChecksGrouped(runs: CheckRunSummary[]): string {
 
     // Within each bucket, group checks by a stable "suite" name (when present)
     // to keep large outputs readable.
-    const groups = groupByKey(items, (r) => splitCheckName(r.name).group).sort((a, c) => a.key.localeCompare(c.key));
+    const groups = groupByKey(items, (r) => splitCheckName(r.name).group).sort(
+      (a, c) => c.items.length - a.items.length || a.key.localeCompare(c.key),
+    );
     for (const g of groups) {
       // Only show a subgroup header when it adds information.
       const showHeader = !(groups.length === 1 && g.key === 'checks');
@@ -249,7 +251,9 @@ export function formatPrPlanText(input: {
 
     if (failedChecks.length) {
       lines.push(`  - Failing checks (${failedChecks.length})`);
-      const grouped = groupByKey(failedChecks, (r) => splitCheckName(r.name).group).sort((a, b) => a.key.localeCompare(b.key));
+      const grouped = groupByKey(failedChecks, (r) => splitCheckName(r.name).group).sort(
+        (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
+      );
       for (const g of grouped) {
         const showHeader = !(grouped.length === 1 && g.key === 'checks');
         if (showHeader) lines.push(`    ${g.key} (${g.items.length})`);
@@ -271,7 +275,9 @@ export function formatPrPlanText(input: {
 
     if (pendingChecks.length) {
       lines.push(`  - Pending checks (${pendingChecks.length})`);
-      const grouped = groupByKey(pendingChecks, (r) => splitCheckName(r.name).group).sort((a, b) => a.key.localeCompare(b.key));
+      const grouped = groupByKey(pendingChecks, (r) => splitCheckName(r.name).group).sort(
+        (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
+      );
       for (const g of grouped) {
         const showHeader = !(grouped.length === 1 && g.key === 'checks');
         if (showHeader) lines.push(`    ${g.key} (${g.items.length})`);

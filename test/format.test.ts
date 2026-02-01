@@ -220,6 +220,17 @@ describe('text formatters', () => {
     expect(alphaIdx).toBeLessThan(zedIdx);
   });
 
+  it('sorts suites within a bucket by descending suite size (then name)', () => {
+    const out = formatChecksGrouped([
+      { id: 1, name: 'CI / test', status: 'completed', conclusion: 'failure', detailsUrl: null },
+      { id: 2, name: 'CI / lint', status: 'completed', conclusion: 'failure', detailsUrl: null },
+      { id: 3, name: 'Release / build', status: 'completed', conclusion: 'failure', detailsUrl: null },
+    ]);
+
+    // "CI" has 2 failures; "Release" has 1, so CI should be listed first.
+    expect(out.indexOf('  CI (2)')).toBeLessThan(out.indexOf('  Release (1)'));
+  });
+
   it('formats a plan summary', () => {
     const out = formatPrPlanText({
       pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },

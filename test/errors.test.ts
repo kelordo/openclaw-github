@@ -79,4 +79,10 @@ describe('formatCliError', () => {
       expect(out.message).toMatch(/owner\/name/i);
     }
   });
+
+  it('adds a --help hint for common CLI input errors', () => {
+    const out = formatCliError(new Error('Missing --repo owner/name'));
+    expect(out.code).toBe(2);
+    expect(out.message).toMatch(/--help/);
+  });
 });

@@ -28,6 +28,15 @@ export function formatCliError(err: unknown): CliError {
     return { message: err.message, code: 2 };
   }
 
+  if (err instanceof Error) {
+    const msg = err.message;
+
+    // Common CLI input errors: provide a gentle hint towards `--help`.
+    if (/^(Missing --|Invalid --|Unknown command:)/.test(msg)) {
+      return { message: `${msg} (run: pr-autopilot --help)`, code: 2 };
+    }
+  }
+
   if (err instanceof ZodError) {
     const details = err.issues
       .map((i) => {

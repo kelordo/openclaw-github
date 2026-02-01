@@ -74,4 +74,34 @@ If there are any checks/comments, it also prints an `Action items` section that 
 
 Then it prints the full grouped comment and check blocks, indented under their section headers to keep the overall output readable.
 
+Example (abridged):
+
+```text
+PR #12: Add pr plan command
+https://github.com/o/r/pull/12
+State: open
+
+Summary
+  - Comments: 3 across 2 files
+  - Checks: 2 (failed=1 success=1)
+
+Action items
+  - Failing checks (1)
+    CI (1)
+      - test (ubuntu-latest) https://github.com/o/r/actions/runs/1
+  - Review comments (3)
+    - src/cli.ts (2)
+      Review 12345 (2)
+        - alice (pos 10): Please add a test. https://...
+        - … +1 more
+    - src/format.ts (1)
+      - bob (pos 7): Can you group these by review? https://...
+
+Review comments (3)
+  ...
+
+Checks (2)
+  ...
+```
+
 Use `--json` if you want to feed an agent or script.

@@ -271,18 +271,20 @@ export function formatPrPlanText(input: {
   // Action-oriented grouping: surface what likely needs attention first.
   const failedChecks = checks.filter((c) => bucketCheck(c) === 'failed');
   const pendingChecks = checks.filter((c) => bucketCheck(c) === 'pending');
+  const unknownChecks = checks.filter((c) => bucketCheck(c) === 'unknown');
   const commentByFile = groupByKey(comments, (c) => c.path).sort((a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key));
 
-  if (failedChecks.length || pendingChecks.length || comments.length) {
+  if (failedChecks.length || pendingChecks.length || unknownChecks.length || comments.length) {
     lines.push('Action items');
 
-    const attentionChecks = [...failedChecks, ...pendingChecks];
+    const attentionChecks = [...failedChecks, ...pendingChecks, ...unknownChecks];
     if (attentionChecks.length) {
       lines.push(`  - Checks needing attention (${attentionChecks.length})`);
 
       const sections: { label: string; items: CheckRunSummary[] }[] = [
         { label: 'Failing', items: failedChecks },
         { label: 'Pending', items: pendingChecks },
+        { label: 'Unknown', items: unknownChecks },
       ];
 
       for (const section of sections) {

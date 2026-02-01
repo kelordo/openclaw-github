@@ -147,7 +147,7 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('Commenters: alice=2, bob=1');
   });
 
-  it('includes status/conclusion in action-items check lines', () => {
+  it('includes status/conclusion in action-items check lines (including unknown conclusions)', () => {
     const pull: PullDetails = {
       number: 1,
       title: 'Test PR',
@@ -175,16 +175,26 @@ describe('formatPrPlanText', () => {
         conclusion: null,
         detailsUrl: 'https://example.com/pending',
       },
+      {
+        id: 3,
+        name: 'CI / weird',
+        status: 'completed',
+        conclusion: null,
+        detailsUrl: 'https://example.com/unknown',
+      },
     ];
 
     const out = formatPrPlanText({ pull, comments, checks });
 
-    expect(out).toContain('Checks needing attention (2)');
+    expect(out).toContain('Checks needing attention (3)');
 
     expect(out).toContain('- Failing (1)');
     expect(out).toContain('test (ubuntu): completed/failure https://example.com/fail');
 
     expect(out).toContain('- Pending (1)');
     expect(out).toContain('lint: in_progress https://example.com/pending');
+
+    expect(out).toContain('- Unknown (1)');
+    expect(out).toContain('weird: completed https://example.com/unknown');
   });
 });

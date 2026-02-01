@@ -67,7 +67,7 @@ success (2)
 If there are any checks/comments, it also prints an `Action items` section that surfaces:
 - failing checks (grouped by suite prefix when present)
 - pending checks (grouped)
-- review comments grouped by file (most-commented files first), with a small preview clustered by review id when available
+- review comments grouped by file (most-commented files first; only the top 5 files are shown here), with a small preview clustered by review id when available
 
 Then it prints the full grouped comment and check blocks, indented under their section headers to keep the overall output readable.
 

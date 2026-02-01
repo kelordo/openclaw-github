@@ -283,7 +283,14 @@ export function formatPrPlanText(input: {
 
     if (comments.length) {
       lines.push(`  - Review comments (${comments.length})`);
-      for (const f of commentByFile) {
+
+      // Keep the action-items section short: show the most-commented files first,
+      // then elide the rest.
+      const maxFiles = 5;
+      const shownFiles = commentByFile.slice(0, maxFiles);
+      const hiddenFiles = commentByFile.length - shownFiles.length;
+
+      for (const f of shownFiles) {
         lines.push(`    - ${f.key} (${f.items.length})`);
 
         // Mirror `formatCommentsGrouped` structure: within each file, cluster by review id when possible.
@@ -334,6 +341,10 @@ export function formatPrPlanText(input: {
           const prefix = showReviewHeader ? '        -' : '      -';
           lines.push(`${prefix} … +${remaining} more`);
         }
+      }
+
+      if (hiddenFiles > 0) {
+        lines.push(`    - … +${hiddenFiles} more file${hiddenFiles === 1 ? '' : 's'}`);
       }
     }
 

@@ -202,6 +202,30 @@ describe('text formatters', () => {
     expect(out).toContain('alice (pos 10): Please rename this variable c1');
   });
 
+  it('elides action item review comments when many files are commented', () => {
+    const comments = Array.from({ length: 7 }, (_, i) => ({
+      id: i + 1,
+      pullRequestReviewId: null,
+      userLogin: 'alice',
+      path: `f${i}.ts`,
+      position: 1,
+      body: 'x',
+      createdAt: '2026-01-01T00:00:00Z',
+      htmlUrl: `c${i}`,
+    }));
+
+    const out = formatPrPlanText({
+      pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },
+      comments,
+      checks: [],
+    });
+
+    // We show at most 5 files in action items.
+    expect(out).toContain('- f0.ts (1)');
+    expect(out).toContain('- f4.ts (1)');
+    expect(out).toContain('… +2 more files');
+  });
+
   it('groups action item review comment previews by review id within a file when multiple exist', () => {
     const out = formatPrPlanText({
       pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },

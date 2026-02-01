@@ -34,6 +34,18 @@ describe('formatCliError', () => {
     expect(out.message).toMatch(/retry-after: 120s/);
   });
 
+  it('formats rate limit 403 errors and can include reset time', () => {
+    const err = makeRequestError({
+      status: 403,
+      message: 'API rate limit exceeded',
+      headers: { 'x-ratelimit-reset': '1700000000' },
+    });
+    const out = formatCliError(err);
+    expect(out.code).toBe(3);
+    expect(out.message).toMatch(/resets at:/i);
+    expect(out.message).toMatch(/2023-11-14T22:13:20\.000Z/);
+  });
+
   it('formats 404 errors', () => {
     const err = makeRequestError({ status: 404, message: 'Not Found' });
     expect(formatCliError(err).message).toMatch(/not found/i);

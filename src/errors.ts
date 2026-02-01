@@ -41,9 +41,13 @@ export function formatCliError(err: unknown): CliError {
     if (status === 403) {
       const isRateLimit = /rate limit/i.test(msg);
       const retryAfter = getHeader(err, 'retry-after');
+      const resetAt = getHeader(err, 'x-ratelimit-reset');
+      const resetIso = resetAt && /^[0-9]+$/.test(resetAt) ? new Date(Number(resetAt) * 1000).toISOString() : undefined;
       if (isRateLimit) {
         return {
-          message: `GitHub API rate limit exceeded. Try again later${retryAfter ? ` (retry-after: ${retryAfter}s)` : ''}.${suffix}`,
+          message: `GitHub API rate limit exceeded. Try again later${
+            retryAfter ? ` (retry-after: ${retryAfter}s)` : resetIso ? ` (resets at: ${resetIso})` : ''
+          }.${suffix}`,
           code: 3,
         };
       }

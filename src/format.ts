@@ -79,9 +79,15 @@ export function formatCommentsGrouped(comments: ReviewComment[]): string {
     // This keeps multi-comment review threads clustered together.
     const byReview = groupByKey(g.items, (c) => (c.pullRequestReviewId == null ? 'no-review' : String(c.pullRequestReviewId))).sort(
       (a, b) => {
+        // Keep "no-review" comments at the end.
         if (a.key === 'no-review' && b.key !== 'no-review') return 1;
         if (b.key === 'no-review' && a.key !== 'no-review') return -1;
 
+        // Prefer showing the densest review threads first.
+        const lenCmp = b.items.length - a.items.length;
+        if (lenCmp !== 0) return lenCmp;
+
+        // Fall back to stable ordering.
         const aNum = Number(a.key);
         const bNum = Number(b.key);
         if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
@@ -323,9 +329,15 @@ export function formatPrPlanText(input: {
         // Mirror `formatCommentsGrouped` structure: within each file, cluster by review id when possible.
         const byReview = groupByKey(f.items, (c) => (c.pullRequestReviewId == null ? 'no-review' : String(c.pullRequestReviewId))).sort(
           (a, b) => {
+            // Keep "no-review" comments at the end.
             if (a.key === 'no-review' && b.key !== 'no-review') return 1;
             if (b.key === 'no-review' && a.key !== 'no-review') return -1;
 
+            // Prefer showing the densest review threads first.
+            const lenCmp = b.items.length - a.items.length;
+            if (lenCmp !== 0) return lenCmp;
+
+            // Fall back to stable ordering.
             const aNum = Number(a.key);
             const bNum = Number(b.key);
             if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;

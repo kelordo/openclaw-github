@@ -74,11 +74,13 @@ describe('formatPrPlanText', () => {
       htmlUrl: `https://github.com/o/r/pull/1#discussion_r${id}`,
     });
 
-    // 4 comments across 2 review threads; preview should show 3 then elide +1.
+    // 4 comments across 2 review threads; preview budget is 3, so we should show
+    // at least one comment from the second thread (instead of spending all 3 on
+    // the first thread), then elide +1.
     const comments: ReviewComment[] = [
       makeComment(1, 10),
       makeComment(2, 10),
-      makeComment(3, 11),
+      makeComment(3, 10),
       makeComment(4, 11),
     ];
 
@@ -87,6 +89,8 @@ describe('formatPrPlanText', () => {
     const out = formatPrPlanText({ pull, comments, checks });
 
     expect(out).toContain('a.ts (4)');
+    expect(out).toContain('Review 10');
+    expect(out).toContain('Review 11');
     // Ensure we didn't elide by review-thread count; the remaining should be 1.
     expect(out).toContain('… +1 more');
   });

@@ -339,25 +339,42 @@ export function formatPrPlanText(input: {
         const maxPreview = 3;
         let shown = 0;
 
-        for (const reviewGroup of byReview) {
-          if (shown >= maxPreview) break;
-
-          const header = reviewGroup.key === 'no-review' ? 'Other comments' : `Review ${reviewGroup.key}`;
-          if (showReviewHeader) lines.push(`      ${header} (${reviewGroup.items.length})`);
-
-          const sorted = [...reviewGroup.items].sort((a, b) => {
+        // When there are multiple review threads, prefer showing at least one
+        // comment from more threads (up to maxPreview) instead of exhausting the
+        // entire preview budget on the first thread.
+        const sortedGroups = byReview.map((g) => {
+          const sorted = [...g.items].sort((a, b) => {
             const posCmp = compareNullableNumber(a.position, b.position);
             if (posCmp !== 0) return posCmp;
             const dateCmp = a.createdAt.localeCompare(b.createdAt);
             if (dateCmp !== 0) return dateCmp;
             return a.id - b.id;
           });
+          return { key: g.key, items: sorted };
+        });
 
-          const hasPositioned = sorted.some((c) => c.position != null);
-          const hasUnpositioned = sorted.some((c) => c.position == null);
+        const previewGroupCount = Math.min(sortedGroups.length, maxPreview);
+        const base = previewGroupCount > 0 ? Math.floor(maxPreview / previewGroupCount) : 0;
+        let remainder = previewGroupCount > 0 ? maxPreview % previewGroupCount : 0;
 
-          for (const c of sorted) {
+        for (let i = 0; i < sortedGroups.length; i++) {
+          if (shown >= maxPreview) break;
+
+          const reviewGroup = sortedGroups[i]!;
+          const allocation = i < previewGroupCount ? base + (remainder-- > 0 ? 1 : 0) : 0;
+          if (allocation <= 0) continue;
+
+          const header = reviewGroup.key === 'no-review' ? 'Other comments' : `Review ${reviewGroup.key}`;
+          if (showReviewHeader) lines.push(`      ${header} (${reviewGroup.items.length})`);
+
+          const hasPositioned = reviewGroup.items.some((c) => c.position != null);
+          const hasUnpositioned = reviewGroup.items.some((c) => c.position == null);
+
+          // Emit up to `allocation` comments from this thread.
+          let emitted = 0;
+          for (const c of reviewGroup.items) {
             if (shown >= maxPreview) break;
+            if (emitted >= allocation) break;
             const who = c.userLogin ?? 'unknown';
             const body = normalizeOneLine(c.body);
             const pos = c.position != null ? ` (pos ${c.position})` : hasPositioned && hasUnpositioned ? ' (no position)' : '';
@@ -365,6 +382,7 @@ export function formatPrPlanText(input: {
             const prefix = showReviewHeader ? '        -' : '      -';
             lines.push(`${prefix} ${who}${pos}: ${body}${url}`);
             shown++;
+            emitted++;
           }
         }
 

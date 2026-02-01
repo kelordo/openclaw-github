@@ -36,6 +36,7 @@ export type PullsListArgs = {
   repo: string;
   state?: 'open' | 'closed' | 'all';
   per_page?: number;
+  page?: number;
 };
 
 export type PullsListReviewCommentsArgs = {
@@ -43,6 +44,7 @@ export type PullsListReviewCommentsArgs = {
   repo: string;
   pull_number: number;
   per_page?: number;
+  page?: number;
 };
 
 export type PullsGetArgs = {
@@ -56,6 +58,7 @@ export type ChecksListForRefArgs = {
   repo: string;
   ref: string;
   per_page?: number;
+  page?: number;
 };
 
 // Minimal subset of Octokit that we need; keeps tests easy.
@@ -73,8 +76,16 @@ export type OctokitLike = {
 export function createGitHubApi(octokit: OctokitLike): GitHubApi {
   return {
     async listPulls({ owner, repo, state = 'open' }) {
-      const res = await octokit.pulls.list({ owner, repo, state, per_page: 50 });
-      return res.data.map((prUnknown) => {
+      const perPage = 100;
+      const data: unknown[] = [];
+
+      for (let page = 1; page <= 100; page++) {
+        const res = await octokit.pulls.list({ owner, repo, state, per_page: perPage, page });
+        data.push(...res.data);
+        if (res.data.length < perPage) break;
+      }
+
+      return data.map((prUnknown) => {
         const pr = prUnknown as {
           number: number;
           title: string;
@@ -93,8 +104,22 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
     },
 
     async listReviewComments({ owner, repo, pullNumber }) {
-      const res = await octokit.pulls.listReviewComments({ owner, repo, pull_number: pullNumber, per_page: 100 });
-      return res.data.map((cUnknown) => {
+      const perPage = 100;
+      const data: unknown[] = [];
+
+      for (let page = 1; page <= 100; page++) {
+        const res = await octokit.pulls.listReviewComments({
+          owner,
+          repo,
+          pull_number: pullNumber,
+          per_page: perPage,
+          page,
+        });
+        data.push(...res.data);
+        if (res.data.length < perPage) break;
+      }
+
+      return data.map((cUnknown) => {
         const c = cUnknown as {
           id: number;
           pull_request_review_id?: number | null;
@@ -124,8 +149,16 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
       const headSha = pr.head?.sha;
       if (!headSha) throw new Error('Unable to determine PR head SHA');
 
-      const res = await octokit.checks.listForRef({ owner, repo, ref: headSha, per_page: 100 });
-      return res.data.check_runs.map((rUnknown) => {
+      const perPage = 100;
+      const runs: unknown[] = [];
+
+      for (let page = 1; page <= 100; page++) {
+        const res = await octokit.checks.listForRef({ owner, repo, ref: headSha, per_page: perPage, page });
+        runs.push(...res.data.check_runs);
+        if (res.data.check_runs.length < perPage) break;
+      }
+
+      return runs.map((rUnknown) => {
         const r = rUnknown as {
           id: number;
           name: string;

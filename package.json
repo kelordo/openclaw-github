@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "bin": {
-    "pr-autopilot": "dist/cli.js"
+    "pr-autopilot": "dist/index.js"
   },
   "scripts": {
     "test": "vitest run",

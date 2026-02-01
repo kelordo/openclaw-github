@@ -2,15 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { createGitHubApi, type OctokitLike } from '../src/github/api.js';
 
 describe('github api wrapper', () => {
-  it('listPulls maps fields', async () => {
+  it('listPulls maps fields + paginates', async () => {
+    let calls = 0;
+
     const octokit: OctokitLike = {
       pulls: {
-        list: async () => ({
-          data: [
-            { number: 1, title: 'A', state: 'open', draft: false, html_url: 'u1' },
-            { number: 2, title: 'B', state: 'closed', draft: true, html_url: 'u2' },
-          ],
-        }),
+        list: async ({ page }) => {
+          calls++;
+          if (page === 1) {
+            return {
+              data: [{ number: 1, title: 'A', state: 'open', draft: false, html_url: 'u1' }],
+            };
+          }
+          return {
+            data: [{ number: 2, title: 'B', state: 'closed', draft: true, html_url: 'u2' }],
+          };
+        },
         listReviewComments: async () => ({ data: [] }),
         get: async () => ({ data: { head: { sha: 'abc' } } }),
       },

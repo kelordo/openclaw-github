@@ -90,7 +90,7 @@ export function formatCommentsGrouped(comments: ReviewComment[]): string {
       },
     );
 
-    const showReviewHeader = byReview.length > 1;
+    const showReviewHeader = byReview.length > 1 || (byReview.length === 1 && byReview[0]?.key !== 'no-review');
 
     for (const reviewGroup of byReview) {
       const header =
@@ -334,7 +334,7 @@ export function formatPrPlanText(input: {
           },
         );
 
-        const showReviewHeader = byReview.length > 1;
+        const showReviewHeader = byReview.length > 1 || (byReview.length === 1 && byReview[0]?.key !== 'no-review');
 
         const maxPreview = 3;
         let shown = 0;

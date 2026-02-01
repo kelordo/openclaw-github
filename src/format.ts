@@ -208,10 +208,9 @@ export function formatChecksGrouped(runs: CheckRunSummary[]): string {
       });
       for (const r of sorted) {
         const { label } = splitCheckName(r.name);
-        const concl = r.conclusion ?? '-';
         const url = r.detailsUrl ?? '';
         const prefix = showHeader ? '    -' : '  -';
-        lines.push(`${prefix} ${label}: ${r.status}${concl !== '-' ? `/${concl}` : ''}${url ? ` ${url}` : ''}`);
+        lines.push(`${prefix} ${label}: ${formatCheckStatus(r)}${url ? ` ${url}` : ''}`);
       }
     }
 

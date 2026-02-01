@@ -52,6 +52,45 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('… +1 more');
   });
 
+  it('handles action-items comment preview across multiple review threads without miscounting remaining comments', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const makeComment = (id: number, reviewId: number): ReviewComment => ({
+      id,
+      pullRequestReviewId: reviewId,
+      userLogin: 'alice',
+      path: 'a.ts',
+      position: id,
+      body: `Comment ${id}`,
+      createdAt: `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`,
+      htmlUrl: `https://github.com/o/r/pull/1#discussion_r${id}`,
+    });
+
+    // 4 comments across 2 review threads; preview should show 3 then elide +1.
+    const comments: ReviewComment[] = [
+      makeComment(1, 10),
+      makeComment(2, 10),
+      makeComment(3, 11),
+      makeComment(4, 11),
+    ];
+
+    const checks: CheckRunSummary[] = [];
+
+    const out = formatPrPlanText({ pull, comments, checks });
+
+    expect(out).toContain('a.ts (4)');
+    // Ensure we didn't elide by review-thread count; the remaining should be 1.
+    expect(out).toContain('… +1 more');
+  });
+
   it('includes a commenter summary in the Summary section', () => {
     const pull: PullDetails = {
       number: 1,

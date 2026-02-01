@@ -2,6 +2,7 @@ import { readEnv, parseRepoSlug } from './config.js';
 import { createOctokit } from './github/octokit.js';
 import { createGitHubApi } from './github/api.js';
 import { formatJson } from './output.js';
+import { formatChecksGrouped, formatCommentsGrouped, formatPrPlanText } from './format.js';
 import { formatCliError } from './errors.js';
 import { readPackageVersion } from './version.js';
 
@@ -17,6 +18,7 @@ function usage(): string {
     '  pr-autopilot pr list --repo owner/name [--state open|closed|all] [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr comments --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr checks --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]',
+    '  pr-autopilot pr plan --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]',
     '',
     'Env:',
     '  GITHUB_TOKEN (required for GitHub commands)',
@@ -114,10 +116,7 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
       return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
-    const out = comments
-      .map((c) => `${c.id}\t${c.userLogin ?? 'unknown'}\t${c.path}\t${c.body.replaceAll(/\s+/g, ' ').trim()}`)
-      .join('\n');
-    return { code: 0, stdout: out + (out ? '\n' : '') };
+    return { code: 0, stdout: formatCommentsGrouped(comments) };
   }
 
   if (top === 'pr' && sub === 'checks') {
@@ -140,10 +139,34 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
       return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
-    const out = checks
-      .map((r) => `${r.id}\t${r.status}\t${r.conclusion ?? '-'}\t${r.name}\t${r.detailsUrl ?? ''}`)
-      .join('\n');
-    return { code: 0, stdout: out + (out ? '\n' : '') };
+    return { code: 0, stdout: formatChecksGrouped(checks) };
+  }
+
+  if (top === 'pr' && sub === 'plan') {
+    const repoSlug = getFlag(args, '--repo');
+    const prStr = getFlag(args, '--pr');
+    if (!repoSlug) throw new Error('Missing --repo owner/name');
+    if (!prStr) throw new Error('Missing --pr <number>');
+    const pullNumber = Number(prStr);
+    if (!Number.isInteger(pullNumber) || pullNumber <= 0) throw new Error('Invalid --pr <number>');
+
+    const token = requireToken();
+    const { owner, repo } = parseRepoSlug(repoSlug);
+    const api = createGitHubApi(createOctokit(token));
+
+    const pull = await api.getPull({ owner, repo, pullNumber });
+    const [comments, checks] = await Promise.all([
+      api.listReviewComments({ owner, repo, pullNumber }),
+      api.listCheckRunsForRef({ owner, repo, ref: pull.headSha }),
+    ]);
+
+    if (hasFlag(args, '--json')) {
+      const data = { pull, comments, checks };
+      const payload = hasFlag(args, '--json-envelope') ? { schema: 'pr-autopilot/pr-plan@1', data } : data;
+      return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
+    }
+
+    return { code: 0, stdout: formatPrPlanText({ pull, comments, checks }) };
   }
 
   return { code: 2, stderr: `Unknown command: ${args.join(' ')}\n\n${usage()}` };

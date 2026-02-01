@@ -94,6 +94,23 @@ describe('github api wrapper', () => {
     ]);
   });
 
+  it('getPull maps fields', async () => {
+    const octokit: OctokitLike = {
+      pulls: {
+        list: async () => ({ data: [] }),
+        listReviewComments: async () => ({ data: [] }),
+        get: async () => ({ data: { number: 7, title: 'Hello', state: 'open', draft: true, html_url: 'u', head: { sha: 'abc' } } }),
+      },
+      checks: {
+        listForRef: async () => ({ data: { check_runs: [] } }),
+      },
+    };
+
+    const api = createGitHubApi(octokit);
+    const pr = await api.getPull({ owner: 'o', repo: 'r', pullNumber: 7 });
+    expect(pr).toEqual({ number: 7, title: 'Hello', state: 'open', draft: true, htmlUrl: 'u', headSha: 'abc' });
+  });
+
   it('listCheckRunsForPull uses PR head sha', async () => {
     let capturedRef: string | undefined;
 
@@ -101,7 +118,7 @@ describe('github api wrapper', () => {
       pulls: {
         list: async () => ({ data: [] }),
         listReviewComments: async () => ({ data: [] }),
-        get: async () => ({ data: { head: { sha: 'deadbeef' } } }),
+        get: async () => ({ data: { number: 1, title: 'T', state: 'open', draft: false, html_url: 'u', head: { sha: 'deadbeef' } } }),
       },
       checks: {
         listForRef: async (args: unknown) => {

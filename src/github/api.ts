@@ -27,9 +27,20 @@ export type CheckRunSummary = {
   detailsUrl: string | null;
 };
 
+export type PullDetails = {
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  draft?: boolean;
+  htmlUrl: string;
+  headSha: string;
+};
+
 export type GitHubApi = {
   listPulls(params: { owner: string; repo: string; state?: 'open' | 'closed' | 'all' }): Promise<PullRequestSummary[]>;
+  getPull(params: { owner: string; repo: string; pullNumber: number }): Promise<PullDetails>;
   listReviewComments(params: { owner: string; repo: string; pullNumber: number }): Promise<ReviewComment[]>;
+  listCheckRunsForRef(params: { owner: string; repo: string; ref: string }): Promise<CheckRunSummary[]>;
   listCheckRunsForPull(params: { owner: string; repo: string; pullNumber: number }): Promise<CheckRunSummary[]>;
 };
 
@@ -100,6 +111,11 @@ const ReviewCommentSchema = z.object({
 });
 
 const PullGetSchema = z.object({
+  number: z.number().optional(),
+  title: z.string().optional(),
+  state: z.union([z.literal('open'), z.literal('closed')]).optional(),
+  draft: z.boolean().optional(),
+  html_url: z.string().optional(),
   head: z
     .object({
       sha: z.string().optional(),
@@ -124,85 +140,112 @@ function parseOrThrow<T>(schema: z.ZodSchema<T>, value: unknown, what: string): 
 }
 
 export function createGitHubApi(octokit: OctokitLike): GitHubApi {
+  async function listPulls({ owner, repo, state = 'open' }: { owner: string; repo: string; state?: 'open' | 'closed' | 'all' }) {
+    const perPage = 100;
+    const data: unknown[] = [];
+
+    for (let page = 1; page <= 100; page++) {
+      const res = await octokit.pulls.list({ owner, repo, state, per_page: perPage, page });
+      data.push(...res.data);
+      if (res.data.length < perPage) break;
+    }
+
+    return data.map((prUnknown) => {
+      const pr = parseOrThrow(PullSchema, prUnknown, 'pulls.list item');
+      return {
+        number: pr.number,
+        title: pr.title,
+        state: pr.state,
+        draft: pr.draft,
+        htmlUrl: pr.html_url,
+      };
+    });
+  }
+
+  async function getPull({ owner, repo, pullNumber }: { owner: string; repo: string; pullNumber: number }) {
+    const prRes = await octokit.pulls.get({ owner, repo, pull_number: pullNumber });
+    const pr = parseOrThrow(PullGetSchema, prRes.data, 'pulls.get');
+
+    if (pr.number == null || pr.title == null || pr.state == null || pr.html_url == null) {
+      throw new Error('Unexpected GitHub API response for pulls.get');
+    }
+
+    const headSha = pr.head?.sha;
+    if (!headSha) throw new Error('Unable to determine PR head SHA');
+
+    return {
+      number: pr.number,
+      title: pr.title,
+      state: pr.state,
+      draft: pr.draft,
+      htmlUrl: pr.html_url,
+      headSha,
+    };
+  }
+
+  async function listReviewComments({ owner, repo, pullNumber }: { owner: string; repo: string; pullNumber: number }) {
+    const perPage = 100;
+    const data: unknown[] = [];
+
+    for (let page = 1; page <= 100; page++) {
+      const res = await octokit.pulls.listReviewComments({
+        owner,
+        repo,
+        pull_number: pullNumber,
+        per_page: perPage,
+        page,
+      });
+      data.push(...res.data);
+      if (res.data.length < perPage) break;
+    }
+
+    return data.map((cUnknown) => {
+      const c = parseOrThrow(ReviewCommentSchema, cUnknown, 'pulls.listReviewComments item');
+      return {
+        id: c.id,
+        pullRequestReviewId: c.pull_request_review_id ?? null,
+        userLogin: c.user?.login ?? null,
+        path: c.path,
+        position: c.position ?? null,
+        body: c.body ?? '',
+        createdAt: c.created_at,
+        htmlUrl: c.html_url,
+      };
+    });
+  }
+
+  async function listCheckRunsForRef({ owner, repo, ref }: { owner: string; repo: string; ref: string }) {
+    const perPage = 100;
+    const runs: unknown[] = [];
+
+    for (let page = 1; page <= 100; page++) {
+      const res = await octokit.checks.listForRef({ owner, repo, ref, per_page: perPage, page });
+      runs.push(...res.data.check_runs);
+      if (res.data.check_runs.length < perPage) break;
+    }
+
+    return runs.map((rUnknown) => {
+      const r = parseOrThrow(CheckRunSchema, rUnknown, 'checks.listForRef check_run');
+      return {
+        id: r.id,
+        name: r.name,
+        status: r.status,
+        conclusion: r.conclusion ?? null,
+        detailsUrl: r.details_url ?? null,
+      };
+    });
+  }
+
+  async function listCheckRunsForPull({ owner, repo, pullNumber }: { owner: string; repo: string; pullNumber: number }) {
+    const pr = await getPull({ owner, repo, pullNumber });
+    return listCheckRunsForRef({ owner, repo, ref: pr.headSha });
+  }
+
   return {
-    async listPulls({ owner, repo, state = 'open' }) {
-      const perPage = 100;
-      const data: unknown[] = [];
-
-      for (let page = 1; page <= 100; page++) {
-        const res = await octokit.pulls.list({ owner, repo, state, per_page: perPage, page });
-        data.push(...res.data);
-        if (res.data.length < perPage) break;
-      }
-
-      return data.map((prUnknown) => {
-        const pr = parseOrThrow(PullSchema, prUnknown, 'pulls.list item');
-        return {
-          number: pr.number,
-          title: pr.title,
-          state: pr.state,
-          draft: pr.draft,
-          htmlUrl: pr.html_url,
-        };
-      });
-    },
-
-    async listReviewComments({ owner, repo, pullNumber }) {
-      const perPage = 100;
-      const data: unknown[] = [];
-
-      for (let page = 1; page <= 100; page++) {
-        const res = await octokit.pulls.listReviewComments({
-          owner,
-          repo,
-          pull_number: pullNumber,
-          per_page: perPage,
-          page,
-        });
-        data.push(...res.data);
-        if (res.data.length < perPage) break;
-      }
-
-      return data.map((cUnknown) => {
-        const c = parseOrThrow(ReviewCommentSchema, cUnknown, 'pulls.listReviewComments item');
-        return {
-          id: c.id,
-          pullRequestReviewId: c.pull_request_review_id ?? null,
-          userLogin: c.user?.login ?? null,
-          path: c.path,
-          position: c.position ?? null,
-          body: c.body ?? '',
-          createdAt: c.created_at,
-          htmlUrl: c.html_url,
-        };
-      });
-    },
-
-    async listCheckRunsForPull({ owner, repo, pullNumber }) {
-      const prRes = await octokit.pulls.get({ owner, repo, pull_number: pullNumber });
-      const pr = parseOrThrow(PullGetSchema, prRes.data, 'pulls.get');
-      const headSha = pr.head?.sha;
-      if (!headSha) throw new Error('Unable to determine PR head SHA');
-
-      const perPage = 100;
-      const runs: unknown[] = [];
-
-      for (let page = 1; page <= 100; page++) {
-        const res = await octokit.checks.listForRef({ owner, repo, ref: headSha, per_page: perPage, page });
-        runs.push(...res.data.check_runs);
-        if (res.data.check_runs.length < perPage) break;
-      }
-
-      return runs.map((rUnknown) => {
-        const r = parseOrThrow(CheckRunSchema, rUnknown, 'checks.listForRef check_run');
-        return {
-          id: r.id,
-          name: r.name,
-          status: r.status,
-          conclusion: r.conclusion ?? null,
-          detailsUrl: r.details_url ?? null,
-        };
-      });
-    },
+    listPulls,
+    getPull,
+    listReviewComments,
+    listCheckRunsForRef,
+    listCheckRunsForPull,
   };
 }

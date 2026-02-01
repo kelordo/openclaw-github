@@ -33,7 +33,7 @@ closed (1)
 ```
 
 ### `pr comments` (grouped)
-Comments are grouped by file path, then by `pullRequestReviewId` (review thread) when present.
+Comments are grouped by file path (most-commented files first), then by `pullRequestReviewId` (review thread) when present.
 Within a file/review, comments are sorted by position (when available), then time.
 
 Example:

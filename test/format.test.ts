@@ -26,7 +26,7 @@ describe('text formatters', () => {
     expect(out).toContain('- #4 Fourth u4');
   });
 
-  it('groups comments by path', () => {
+  it('groups comments by path (most-commented files first)', () => {
     const out = formatCommentsGrouped([
       {
         id: 1,
@@ -48,10 +48,23 @@ describe('text formatters', () => {
         createdAt: 'x',
         htmlUrl: 'u',
       },
+      {
+        id: 3,
+        pullRequestReviewId: null,
+        userLogin: 'carol',
+        path: 'a.ts',
+        position: 2,
+        body: 'another',
+        createdAt: 'x',
+        htmlUrl: 'u',
+      },
     ]);
 
-    expect(out).toContain('a.ts');
-    expect(out).toContain('b.ts');
+    // The file with the most comments should come first.
+    expect(out.indexOf('a.ts')).toBeLessThan(out.indexOf('b.ts'));
+
+    expect(out).toContain('a.ts (2)');
+    expect(out).toContain('b.ts (1)');
     expect(out).toContain('#2 bob');
     expect(out).toContain('multi line');
   });

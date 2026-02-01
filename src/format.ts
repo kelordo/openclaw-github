@@ -66,7 +66,10 @@ export function formatPullsGrouped(prs: PullRequestSummary[]): string {
 export function formatCommentsGrouped(comments: ReviewComment[]): string {
   if (comments.length === 0) return '';
 
-  const groups = groupByKey(comments, (c) => c.path).sort((a, b) => a.key.localeCompare(b.key));
+  // Show the most-commented files first; this makes it easier to spot where review attention is concentrated.
+  const groups = groupByKey(comments, (c) => c.path).sort(
+    (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
+  );
   const lines: string[] = [];
 
   for (const g of groups) {

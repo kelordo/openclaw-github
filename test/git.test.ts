@@ -11,7 +11,8 @@ function sh(cmd: string, args: string[], cwd: string) {
 
 describe('git helpers', () => {
   test('detects clean vs dirty working tree', async () => {
-    const dir = mkdirSync(join(tmpdir(), `pr-autopilot-git-test-${Date.now()}`), { recursive: true });
+    const dir = join(tmpdir(), `pr-autopilot-git-test-${Date.now()}`);
+    mkdirSync(dir, { recursive: true });
 
     try {
       sh('git', ['init'], dir);

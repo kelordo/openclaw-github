@@ -90,7 +90,8 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
       return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
-    return { code: 0, stdout: formatPullsGrouped(prs) };
+    const text = formatPullsGrouped(prs);
+    return { code: 0, stdout: text.length ? text : '(none)\n' };
   }
 
   if (top === 'pr' && sub === 'comments') {
@@ -113,7 +114,8 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
       return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
-    return { code: 0, stdout: formatCommentsGrouped(comments) };
+    const text = formatCommentsGrouped(comments);
+    return { code: 0, stdout: text.length ? text : '(none)\n' };
   }
 
   if (top === 'pr' && sub === 'checks') {
@@ -136,7 +138,8 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
       return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
-    return { code: 0, stdout: formatChecksGrouped(checks) };
+    const text = formatChecksGrouped(checks);
+    return { code: 0, stdout: text.length ? text : '(none)\n' };
   }
 
   if (top === 'pr' && sub === 'plan') {

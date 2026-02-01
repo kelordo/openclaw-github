@@ -416,22 +416,52 @@ export function formatPrPlanText(
           const header = reviewGroup.key === 'no-review' ? 'Other comments' : `Review ${reviewGroup.key}`;
           if (showReviewHeader) lines.push(`      ${header} (${reviewGroup.items.length})`);
 
-          const hasPositioned = reviewGroup.items.some((c) => c.position != null);
-          const hasUnpositioned = reviewGroup.items.some((c) => c.position == null);
+          const positioned = reviewGroup.items.filter((c) => c.position != null);
+          const unpositioned = reviewGroup.items.filter((c) => c.position == null);
+          const showDiffBuckets = positioned.length > 0 && unpositioned.length > 0;
 
           // Emit up to `allocation` comments from this thread.
           let emitted = 0;
-          for (const c of reviewGroup.items) {
-            if (shown >= maxPreview) break;
-            if (emitted >= allocation) break;
-            const who = c.userLogin ?? 'unknown';
-            const body = normalizeOneLine(c.body);
-            const pos = c.position != null ? ` (pos ${c.position})` : hasPositioned && hasUnpositioned ? ' (no position)' : '';
-            const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
-            const prefix = showReviewHeader ? '        -' : '      -';
-            lines.push(`${prefix} ${who}${pos}: ${body}${url}`);
-            shown++;
-            emitted++;
+
+          const bucketIndent = showReviewHeader ? '        ' : '      ';
+          const bucketItemPrefix = showReviewHeader ? '          -' : '        -';
+          const flatItemPrefix = showReviewHeader ? '        -' : '      -';
+
+          const emitBucket = (label: string, items: ReviewComment[]) => {
+            if (items.length === 0) return;
+            if (shown >= maxPreview) return;
+            if (emitted >= allocation) return;
+
+            lines.push(`${bucketIndent}${label} (${items.length})`);
+
+            for (const c of items) {
+              if (shown >= maxPreview) break;
+              if (emitted >= allocation) break;
+              const who = c.userLogin ?? 'unknown';
+              const body = normalizeOneLine(c.body);
+              const pos = c.position != null ? ` (pos ${c.position})` : ' (no position)';
+              const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+              lines.push(`${bucketItemPrefix} ${who}${pos}: ${body}${url}`);
+              shown++;
+              emitted++;
+            }
+          };
+
+          if (showDiffBuckets) {
+            emitBucket('Current diff', positioned);
+            emitBucket('Outdated', unpositioned);
+          } else {
+            for (const c of reviewGroup.items) {
+              if (shown >= maxPreview) break;
+              if (emitted >= allocation) break;
+              const who = c.userLogin ?? 'unknown';
+              const body = normalizeOneLine(c.body);
+              const pos = c.position != null ? ` (pos ${c.position})` : '';
+              const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+              lines.push(`${flatItemPrefix} ${who}${pos}: ${body}${url}`);
+              shown++;
+              emitted++;
+            }
           }
         }
 

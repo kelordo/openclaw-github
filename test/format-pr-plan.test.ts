@@ -95,6 +95,52 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('… +1 more');
   });
 
+  it('shows Current diff vs Outdated buckets in action-items comment preview when a thread mixes positioned and unpositioned comments', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const comments: ReviewComment[] = [
+      {
+        id: 1,
+        pullRequestReviewId: 10,
+        userLogin: 'alice',
+        path: 'a.ts',
+        position: 1,
+        body: 'Current',
+        createdAt: '2026-01-01T00:00:00Z',
+        htmlUrl: 'u1',
+      },
+      {
+        id: 2,
+        pullRequestReviewId: 10,
+        userLogin: 'alice',
+        path: 'a.ts',
+        position: null,
+        body: 'Outdated',
+        createdAt: '2026-01-01T00:00:01Z',
+        htmlUrl: 'u2',
+      },
+    ];
+
+    const checks: CheckRunSummary[] = [];
+
+    const out = formatPrPlanText({ pull, comments, checks });
+
+    expect(out).toContain('Action items');
+    expect(out).toContain('a.ts (2)');
+    expect(out).toContain('Current diff (1)');
+    expect(out).toContain('Outdated (1)');
+    expect(out).toContain('alice (pos 1): Current');
+    expect(out).toContain('alice (no position): Outdated');
+  });
+
   it('includes a commenter summary in the Summary section', () => {
     const pull: PullDetails = {
       number: 1,

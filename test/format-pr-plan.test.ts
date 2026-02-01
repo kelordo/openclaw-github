@@ -276,6 +276,50 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('weird: completed https://example.com/unknown');
   });
 
+  it('groups action-items checks by suite prefix when present', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const comments: ReviewComment[] = [];
+
+    const checks: CheckRunSummary[] = [
+      {
+        id: 1,
+        name: 'CI / test (ubuntu)',
+        status: 'completed',
+        conclusion: 'failure',
+        detailsUrl: 'https://example.com/fail',
+      },
+      {
+        id: 2,
+        name: 'Security / scan',
+        status: 'completed',
+        conclusion: 'failure',
+        detailsUrl: 'https://example.com/sec',
+      },
+    ];
+
+    const out = formatPrPlanText({ pull, comments, checks });
+
+    expect(out).toContain('Action items');
+    expect(out).toContain('Checks needing attention (2)');
+
+    // Suite headers.
+    expect(out).toContain('CI (1)');
+    expect(out).toContain('Security (1)');
+
+    // Check lines underneath their suite.
+    expect(out).toContain('test (ubuntu): completed/failure https://example.com/fail');
+    expect(out).toContain('scan: completed/failure https://example.com/sec');
+  });
+
   it('supports --only-attention mode by omitting full comment/check sections', () => {
     const pull: PullDetails = {
       number: 1,

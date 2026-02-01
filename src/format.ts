@@ -81,6 +81,11 @@ export function formatCommentsGrouped(comments: ReviewComment[]): string {
       (a, b) => {
         if (a.key === 'no-review' && b.key !== 'no-review') return 1;
         if (b.key === 'no-review' && a.key !== 'no-review') return -1;
+
+        const aNum = Number(a.key);
+        const bNum = Number(b.key);
+        if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+
         return a.key.localeCompare(b.key);
       },
     );
@@ -288,6 +293,11 @@ export function formatPrPlanText(input: {
           (a, b) => {
             if (a.key === 'no-review' && b.key !== 'no-review') return 1;
             if (b.key === 'no-review' && a.key !== 'no-review') return -1;
+
+            const aNum = Number(a.key);
+            const bNum = Number(b.key);
+            if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+
             return a.key.localeCompare(b.key);
           },
         );

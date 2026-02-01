@@ -51,4 +51,43 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('a.ts (4)');
     expect(out).toContain('… +1 more');
   });
+
+  it('includes status/conclusion in action-items check lines', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const comments: ReviewComment[] = [];
+
+    const checks: CheckRunSummary[] = [
+      {
+        id: 1,
+        name: 'CI / test (ubuntu)',
+        status: 'completed',
+        conclusion: 'failure',
+        detailsUrl: 'https://example.com/fail',
+      },
+      {
+        id: 2,
+        name: 'CI / lint',
+        status: 'in_progress',
+        conclusion: null,
+        detailsUrl: 'https://example.com/pending',
+      },
+    ];
+
+    const out = formatPrPlanText({ pull, comments, checks });
+
+    expect(out).toContain('Failing checks (1)');
+    expect(out).toContain('test (ubuntu): completed/failure https://example.com/fail');
+
+    expect(out).toContain('Pending checks (1)');
+    expect(out).toContain('lint: in_progress https://example.com/pending');
+  });
 });

@@ -161,6 +161,11 @@ function splitCheckName(name: string): { group: string; label: string } {
   return { group, label };
 }
 
+function formatCheckStatus(r: CheckRunSummary): string {
+  const concl = r.conclusion ?? '-';
+  return `${r.status}${concl !== '-' ? `/${concl}` : ''}`;
+}
+
 export function formatChecksGrouped(runs: CheckRunSummary[]): string {
   if (runs.length === 0) return '';
 
@@ -267,7 +272,7 @@ export function formatPrPlanText(input: {
           const { label } = splitCheckName(r.name);
           const url = r.detailsUrl ?? '';
           const prefix = showHeader ? '      -' : '    -';
-          lines.push(`${prefix} ${label}${url ? ` ${url}` : ''}`);
+          lines.push(`${prefix} ${label}: ${formatCheckStatus(r)}${url ? ` ${url}` : ''}`);
         }
       }
     }
@@ -290,7 +295,7 @@ export function formatPrPlanText(input: {
           const { label } = splitCheckName(r.name);
           const url = r.detailsUrl ?? '';
           const prefix = showHeader ? '      -' : '    -';
-          lines.push(`${prefix} ${label}: ${r.status}${url ? ` ${url}` : ''}`);
+          lines.push(`${prefix} ${label}: ${formatCheckStatus(r)}${url ? ` ${url}` : ''}`);
         }
       }
     }

@@ -88,7 +88,7 @@ Summary
 Action items
   - Failing checks (1)
     CI (1)
-      - test (ubuntu-latest) https://github.com/o/r/actions/runs/1
+      - test (ubuntu-latest): completed/failure https://github.com/o/r/actions/runs/1
   - Review comments (3)
     - src/cli.ts (2)
       Review 12345 (2)

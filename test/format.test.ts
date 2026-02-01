@@ -202,6 +202,41 @@ describe('text formatters', () => {
     expect(out).toContain('alice (pos 10): Please rename this variable c1');
   });
 
+  it('groups action item review comment previews by review id within a file when multiple exist', () => {
+    const out = formatPrPlanText({
+      pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },
+      comments: [
+        {
+          id: 1,
+          pullRequestReviewId: 10,
+          userLogin: 'alice',
+          path: 'a.ts',
+          position: 1,
+          body: 'x',
+          createdAt: '2026-01-01T00:00:00Z',
+          htmlUrl: 'c1',
+        },
+        {
+          id: 2,
+          pullRequestReviewId: 11,
+          userLogin: 'bob',
+          path: 'a.ts',
+          position: 2,
+          body: 'y',
+          createdAt: '2026-01-01T00:00:01Z',
+          htmlUrl: 'c2',
+        },
+      ],
+      checks: [],
+    });
+
+    expect(out).toContain('Action items');
+    expect(out).toContain('Review comments (2)');
+    expect(out).toContain('- a.ts (2)');
+    expect(out).toContain('Review 10 (1)');
+    expect(out).toContain('Review 11 (1)');
+  });
+
   it('includes bucket counts in the plan summary when checks exist', () => {
     const out = formatPrPlanText({
       pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },

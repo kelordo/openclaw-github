@@ -286,30 +286,53 @@ export function formatPrPlanText(input: {
       for (const f of commentByFile) {
         lines.push(`    - ${f.key} (${f.items.length})`);
 
-        const sorted = [...f.items].sort((a, b) => {
-          const posCmp = compareNullableNumber(a.position, b.position);
-          if (posCmp !== 0) return posCmp;
-          const dateCmp = a.createdAt.localeCompare(b.createdAt);
-          if (dateCmp !== 0) return dateCmp;
-          return a.id - b.id;
-        });
+        // Mirror `formatCommentsGrouped` structure: within each file, cluster by review id when possible.
+        const byReview = groupByKey(f.items, (c) => (c.pullRequestReviewId == null ? 'no-review' : String(c.pullRequestReviewId))).sort(
+          (a, b) => {
+            if (a.key === 'no-review' && b.key !== 'no-review') return 1;
+            if (b.key === 'no-review' && a.key !== 'no-review') return -1;
+            return a.key.localeCompare(b.key);
+          },
+        );
 
-        const hasPositioned = sorted.some((c) => c.position != null);
-        const hasUnpositioned = sorted.some((c) => c.position == null);
+        const showReviewHeader = byReview.length > 1;
 
         const maxPreview = 3;
-        const preview = sorted.slice(0, maxPreview);
-        for (const c of preview) {
-          const who = c.userLogin ?? 'unknown';
-          const body = normalizeOneLine(c.body);
-          const pos = c.position != null ? ` (pos ${c.position})` : hasPositioned && hasUnpositioned ? ' (no position)' : '';
-          const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
-          lines.push(`      - ${who}${pos}: ${body}${url}`);
+        let shown = 0;
+
+        for (const reviewGroup of byReview) {
+          if (shown >= maxPreview) break;
+
+          const header = reviewGroup.key === 'no-review' ? 'Other comments' : `Review ${reviewGroup.key}`;
+          if (showReviewHeader) lines.push(`      ${header} (${reviewGroup.items.length})`);
+
+          const sorted = [...reviewGroup.items].sort((a, b) => {
+            const posCmp = compareNullableNumber(a.position, b.position);
+            if (posCmp !== 0) return posCmp;
+            const dateCmp = a.createdAt.localeCompare(b.createdAt);
+            if (dateCmp !== 0) return dateCmp;
+            return a.id - b.id;
+          });
+
+          const hasPositioned = sorted.some((c) => c.position != null);
+          const hasUnpositioned = sorted.some((c) => c.position == null);
+
+          for (const c of sorted) {
+            if (shown >= maxPreview) break;
+            const who = c.userLogin ?? 'unknown';
+            const body = normalizeOneLine(c.body);
+            const pos = c.position != null ? ` (pos ${c.position})` : hasPositioned && hasUnpositioned ? ' (no position)' : '';
+            const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+            const prefix = showReviewHeader ? '        -' : '      -';
+            lines.push(`${prefix} ${who}${pos}: ${body}${url}`);
+            shown++;
+          }
         }
 
-        const remaining = sorted.length - preview.length;
+        const remaining = f.items.length - shown;
         if (remaining > 0) {
-          lines.push(`      - … +${remaining} more`);
+          const prefix = showReviewHeader ? '        -' : '      -';
+          lines.push(`${prefix} … +${remaining} more`);
         }
       }
     }

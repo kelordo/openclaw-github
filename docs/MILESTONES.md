@@ -4,7 +4,7 @@
 - TypeScript + Vitest + ESLint + Prettier
 - Placeholder CLI
 
-## M1 — Read-only GitHub (current)
+## M1 — Read-only GitHub (done)
 Goal: fetch PR data and present it in a scriptable way.
 
 Deliverables:
@@ -16,7 +16,7 @@ Deliverables:
 - [x] Better error messages (missing repo/token, API rate limit)
 - [x] Paging support for comments/checks
 
-## M2 — Branch + commit orchestration
+## M2 — Branch + commit orchestration (current)
 Goal: help an agent work incrementally.
 
 Deliverables:

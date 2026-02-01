@@ -11,7 +11,7 @@ A small CLI that helps an agent (and a human) run a tight GitHub workflow:
 ## Status
 Early scaffold.
 
-Current milestone: read-only GitHub integration via `GITHUB_TOKEN`.
+Current milestone: branch + commit orchestration (local git integration).
 
 Implemented commands (WIP; output format will change):
 

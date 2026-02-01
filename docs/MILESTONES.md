@@ -13,7 +13,7 @@ Deliverables:
 - [x] `pr checks` (check runs)
 - [x] `pr plan` (pull summary + comments + checks)
 - [x] Improve output (JSON flag, stable fields; grouped text output)
-- [ ] Better error messages (missing repo/token, API rate limit)
+- [x] Better error messages (missing repo/token, API rate limit)
 - [x] Paging support for comments/checks
 
 ## M2 — Branch + commit orchestration

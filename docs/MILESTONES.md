@@ -11,7 +11,8 @@ Deliverables:
 - [x] `pr list` (open/closed/all)
 - [x] `pr comments` (review comments)
 - [x] `pr checks` (check runs)
-- [x] Improve output (JSON flag, stable fields)
+- [x] `pr plan` (pull summary + comments + checks)
+- [x] Improve output (JSON flag, stable fields; grouped text output)
 - [ ] Better error messages (missing repo/token, API rate limit)
 - [x] Paging support for comments/checks
 

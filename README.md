@@ -23,6 +23,8 @@ Implemented commands (WIP; output format will change):
 
 `--json-envelope` wraps output as `{ schema, data }` so downstream scripts can lock onto a stable schema version.
 
+Schemas are documented in [docs/OUTPUT.md](docs/OUTPUT.md).
+
 ## Security
 Never commit tokens. Use env vars or a local `.env`.
 

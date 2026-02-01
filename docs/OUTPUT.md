@@ -9,6 +9,27 @@ If you want a stable wrapper for downstream tooling, add `--json-envelope` which
 { "schema": "<schema-id>@<version>", "data": <payload> }
 ```
 
+## Schemas (for `--json-envelope`)
+
+Current schema ids:
+
+- `pr-autopilot/pr-list@1` → `PullRequestSummary[]`
+- `pr-autopilot/pr-comments@1` → `ReviewComment[]`
+- `pr-autopilot/pr-checks@1` → `CheckRunSummary[]`
+- `pr-autopilot/pr-plan@1` → `{ pull, comments, checks }`
+
+`pr plan` JSON shape (when not enveloped):
+
+```json
+{
+  "pull": { "number": 12, "title": "...", "state": "open", "htmlUrl": "...", "headSha": "..." },
+  "comments": [ { "id": 123, "path": "src/cli.ts", "body": "...", "userLogin": "alice", "position": 10 } ],
+  "checks": [ { "id": 456, "name": "CI / test", "status": "completed", "conclusion": "success", "detailsUrl": "..." } ]
+}
+```
+
+Field sets may expand over time; treat unknown fields as forwards-compatible.
+
 ## Grouped text output
 
 ### `pr list` (grouped)

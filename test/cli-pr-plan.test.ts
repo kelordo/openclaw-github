@@ -154,6 +154,9 @@ describe('cli pr plan', () => {
       expect(out).toContain('Summary');
       expect(out).toContain('Action items');
       expect(out).toContain('Checks needing attention');
+      // Ensure checks are grouped into attention buckets + suite grouping.
+      expect(out).toContain('Failing');
+      expect(out).toContain('CI');
       expect(out).toContain('Review comments (all)');
       expect(out).toContain('Checks (all)');
     } finally {

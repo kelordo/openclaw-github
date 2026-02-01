@@ -245,7 +245,8 @@ export function formatPrPlanText(input: {
           const { label } = splitCheckName(r.name);
           const url = r.detailsUrl ?? '';
           const prefix = showHeader ? '      -' : '    -';
-          lines.push(`${prefix} ${label}${url ? ` ${url}` : ''}`);
+          const concl = r.conclusion ?? '-';
+          lines.push(`${prefix} ${label}: ${r.status}${concl !== '-' ? `/${concl}` : ''}${url ? ` ${url}` : ''}`);
         }
       }
     }
@@ -261,7 +262,8 @@ export function formatPrPlanText(input: {
           const { label } = splitCheckName(r.name);
           const url = r.detailsUrl ?? '';
           const prefix = showHeader ? '      -' : '    -';
-          lines.push(`${prefix} ${label}${url ? ` ${url}` : ''}`);
+          const concl = r.conclusion ?? '-';
+          lines.push(`${prefix} ${label}: ${r.status}${concl !== '-' ? `/${concl}` : ''}${url ? ` ${url}` : ''}`);
         }
       }
     }

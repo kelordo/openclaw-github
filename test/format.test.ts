@@ -265,6 +265,23 @@ describe('text formatters', () => {
     expect(out).toContain('Review 11 (1)');
   });
 
+  it('includes status/conclusion for failing and pending checks in the plan action items', () => {
+    const out = formatPrPlanText({
+      pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },
+      comments: [],
+      checks: [
+        { id: 1, name: 'CI / test', status: 'completed', conclusion: 'failure', detailsUrl: 'd1' },
+        { id: 2, name: 'CI / build', status: 'in_progress', conclusion: null, detailsUrl: 'd2' },
+      ],
+    });
+
+    expect(out).toContain('Action items');
+    expect(out).toContain('Failing checks (1)');
+    expect(out).toContain('Pending checks (1)');
+    expect(out).toContain('- test: completed/failure d1');
+    expect(out).toContain('- build: in_progress d2');
+  });
+
   it('includes bucket counts in the plan summary when checks exist', () => {
     const out = formatPrPlanText({
       pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },

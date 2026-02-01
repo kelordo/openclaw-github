@@ -11,8 +11,8 @@ describe('github api wrapper', () => {
           calls++;
           return {
             data: [
-              { number: 1, title: 'A', state: 'open', draft: false, html_url: 'u1' },
-              { number: 2, title: 'B', state: 'closed', draft: true, html_url: 'u2' },
+              { number: 1, title: 'A', state: 'open', draft: false, merged_at: null, html_url: 'u1' },
+              { number: 2, title: 'B', state: 'closed', draft: true, merged_at: '2020-01-01T00:00:00Z', html_url: 'u2' },
             ],
           };
         },
@@ -27,8 +27,8 @@ describe('github api wrapper', () => {
     const api = createGitHubApi(octokit);
     const prs = await api.listPulls({ owner: 'o', repo: 'r', state: 'open' });
     expect(prs).toEqual([
-      { number: 1, title: 'A', state: 'open', draft: false, htmlUrl: 'u1' },
-      { number: 2, title: 'B', state: 'closed', draft: true, htmlUrl: 'u2' },
+      { number: 1, title: 'A', state: 'open', draft: false, merged: false, htmlUrl: 'u1' },
+      { number: 2, title: 'B', state: 'closed', draft: true, merged: true, htmlUrl: 'u2' },
     ]);
     expect(calls).toBe(1);
   });
@@ -99,7 +99,7 @@ describe('github api wrapper', () => {
       pulls: {
         list: async () => ({ data: [] }),
         listReviewComments: async () => ({ data: [] }),
-        get: async () => ({ data: { number: 7, title: 'Hello', state: 'open', draft: true, html_url: 'u', head: { sha: 'abc' } } }),
+        get: async () => ({ data: { number: 7, title: 'Hello', state: 'open', draft: true, merged: false, merged_at: null, html_url: 'u', head: { sha: 'abc' } } }),
       },
       checks: {
         listForRef: async () => ({ data: { check_runs: [] } }),
@@ -108,7 +108,7 @@ describe('github api wrapper', () => {
 
     const api = createGitHubApi(octokit);
     const pr = await api.getPull({ owner: 'o', repo: 'r', pullNumber: 7 });
-    expect(pr).toEqual({ number: 7, title: 'Hello', state: 'open', draft: true, htmlUrl: 'u', headSha: 'abc' });
+    expect(pr).toEqual({ number: 7, title: 'Hello', state: 'open', draft: true, merged: false, htmlUrl: 'u', headSha: 'abc' });
   });
 
   it('listCheckRunsForPull uses PR head sha', async () => {
@@ -118,7 +118,7 @@ describe('github api wrapper', () => {
       pulls: {
         list: async () => ({ data: [] }),
         listReviewComments: async () => ({ data: [] }),
-        get: async () => ({ data: { number: 1, title: 'T', state: 'open', draft: false, html_url: 'u', head: { sha: 'deadbeef' } } }),
+        get: async () => ({ data: { number: 1, title: 'T', state: 'open', draft: false, merged: false, merged_at: null, html_url: 'u', head: { sha: 'deadbeef' } } }),
       },
       checks: {
         listForRef: async (args: unknown) => {

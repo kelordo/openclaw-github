@@ -5,6 +5,7 @@ export type PullRequestSummary = {
   title: string;
   state: 'open' | 'closed';
   draft?: boolean;
+  merged?: boolean;
   htmlUrl: string;
 };
 
@@ -32,6 +33,7 @@ export type PullDetails = {
   title: string;
   state: 'open' | 'closed';
   draft?: boolean;
+  merged?: boolean;
   htmlUrl: string;
   headSha: string;
 };
@@ -91,6 +93,7 @@ const PullSchema = z.object({
   title: z.string(),
   state: z.union([z.literal('open'), z.literal('closed')]),
   draft: z.boolean().optional(),
+  merged_at: z.string().nullable().optional(),
   html_url: z.string(),
 });
 
@@ -115,6 +118,8 @@ const PullGetSchema = z.object({
   title: z.string().optional(),
   state: z.union([z.literal('open'), z.literal('closed')]).optional(),
   draft: z.boolean().optional(),
+  merged: z.boolean().optional(),
+  merged_at: z.string().nullable().optional(),
   html_url: z.string().optional(),
   head: z
     .object({
@@ -157,6 +162,7 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
         title: pr.title,
         state: pr.state,
         draft: pr.draft,
+        merged: pr.merged_at != null,
         htmlUrl: pr.html_url,
       };
     });
@@ -173,11 +179,14 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
     const headSha = pr.head?.sha;
     if (!headSha) throw new Error('Unable to determine PR head SHA');
 
+    const merged = pr.merged ?? pr.merged_at != null;
+
     return {
       number: pr.number,
       title: pr.title,
       state: pr.state,
       draft: pr.draft,
+      merged,
       htmlUrl: pr.html_url,
       headSha,
     };

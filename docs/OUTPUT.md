@@ -12,7 +12,7 @@ If you want a stable wrapper for downstream tooling, add `--json-envelope` which
 ## Grouped text output
 
 ### `pr list` (grouped)
-PRs are bucketed into: `open`, `draft` (open drafts), and `closed`.
+PRs are bucketed into: `open`, `draft` (open drafts), `merged`, and `closed`.
 Within each bucket, PRs are sorted by PR number descending.
 
 Example:
@@ -25,8 +25,11 @@ open (2)
 draft (1)
   - #16 WIP: refactor formatter https://...
 
+merged (1)
+  - #11 Ship the thing https://...
+
 closed (1)
-  - #10 Release v0.1.0 https://...
+  - #10 Wontfix: older approach https://...
 ```
 
 ### `pr comments` (grouped)

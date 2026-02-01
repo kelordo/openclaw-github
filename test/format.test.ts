@@ -2,24 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { formatChecksGrouped, formatCommentsGrouped, formatPrPlanText, formatPullsGrouped } from '../src/format.js';
 
 describe('text formatters', () => {
-  it('groups pull lists into open/draft/closed buckets', () => {
+  it('groups pull lists into open/draft/merged/closed buckets', () => {
     const out = formatPullsGrouped([
-      { number: 3, title: 'Third', state: 'closed', draft: false, htmlUrl: 'u3' },
-      { number: 2, title: 'Second', state: 'open', draft: true, htmlUrl: 'u2' },
-      { number: 1, title: 'First', state: 'open', draft: false, htmlUrl: 'u1' },
+      { number: 4, title: 'Fourth', state: 'closed', merged: true, draft: false, htmlUrl: 'u4' },
+      { number: 3, title: 'Third', state: 'closed', merged: false, draft: false, htmlUrl: 'u3' },
+      { number: 2, title: 'Second', state: 'open', merged: false, draft: true, htmlUrl: 'u2' },
+      { number: 1, title: 'First', state: 'open', merged: false, draft: false, htmlUrl: 'u1' },
     ]);
 
-    // open comes first
+    // Open-ish buckets come first, then closed buckets.
     expect(out.indexOf('open')).toBeLessThan(out.indexOf('draft'));
-    expect(out.indexOf('draft')).toBeLessThan(out.indexOf('closed'));
+    expect(out.indexOf('draft')).toBeLessThan(out.indexOf('merged'));
+    expect(out.indexOf('merged')).toBeLessThan(out.indexOf('closed'));
 
     expect(out).toContain('open (1)');
     expect(out).toContain('draft (1)');
+    expect(out).toContain('merged (1)');
     expect(out).toContain('closed (1)');
 
     expect(out).toContain('- #1 First u1');
     expect(out).toContain('- #2 Second u2');
     expect(out).toContain('- #3 Third u3');
+    expect(out).toContain('- #4 Fourth u4');
   });
 
   it('groups comments by path', () => {

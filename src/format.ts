@@ -34,41 +34,26 @@ function compareNullableNumber(a: number | null, b: number | null): number {
 export function formatPullsGrouped(prs: PullRequestSummary[]): string {
   if (prs.length === 0) return '';
 
-  // Bucket by state, then show drafts separately within open PRs.
-  // Keep ordering stable and human-friendly.
-  const byState = groupByKey(prs, (pr) => pr.state).sort((a, b) => {
-    if (a.key === 'open' && b.key !== 'open') return -1;
-    if (b.key === 'open' && a.key !== 'open') return 1;
-    return a.key.localeCompare(b.key);
-  });
+  // Bucket PRs into action-oriented groups. This keeps output stable across
+  // different `--state` values and surfaces what you likely care about first.
+  type Bucket = 'open' | 'draft' | 'merged' | 'closed';
+
+  function bucket(pr: PullRequestSummary): Bucket {
+    if (pr.state === 'open') return pr.draft ? 'draft' : 'open';
+    return pr.merged ? 'merged' : 'closed';
+  }
+
+  const BUCKET_ORDER: Bucket[] = ['open', 'draft', 'merged', 'closed'];
+  const groups = groupByKey(prs, (pr) => bucket(pr)).sort(
+    (a, b) => BUCKET_ORDER.indexOf(a.key as Bucket) - BUCKET_ORDER.indexOf(b.key as Bucket),
+  );
 
   const lines: string[] = [];
 
-  for (const stateGroup of byState) {
-    const state = stateGroup.key as 'open' | 'closed';
+  for (const g of groups) {
+    const items = [...g.items].sort((a, b) => b.number - a.number);
 
-    const items = [...stateGroup.items].sort((a, b) => b.number - a.number);
-
-    if (state === 'open') {
-      const draft = items.filter((p) => p.draft);
-      const ready = items.filter((p) => !p.draft);
-
-      if (ready.length) {
-        lines.push(`open (${ready.length})`);
-        for (const pr of ready) lines.push(`  - #${pr.number} ${normalizeOneLine(pr.title)} ${pr.htmlUrl}`);
-        lines.push('');
-      }
-
-      if (draft.length) {
-        lines.push(`draft (${draft.length})`);
-        for (const pr of draft) lines.push(`  - #${pr.number} ${normalizeOneLine(pr.title)} ${pr.htmlUrl}`);
-        lines.push('');
-      }
-
-      continue;
-    }
-
-    lines.push(`${state} (${items.length})`);
+    lines.push(`${g.key} (${items.length})`);
     for (const pr of items) {
       lines.push(`  - #${pr.number} ${normalizeOneLine(pr.title)} ${pr.htmlUrl}`);
     }
@@ -233,7 +218,7 @@ export function formatPrPlanText(input: {
   const lines: string[] = [];
   lines.push(`PR #${pull.number}: ${pull.title}`);
   lines.push(`${pull.htmlUrl}`);
-  lines.push(`State: ${pull.state}${pull.draft ? ' (draft)' : ''}`);
+  lines.push(`State: ${pull.state}${pull.merged ? ' (merged)' : ''}${pull.draft ? ' (draft)' : ''}`);
   lines.push('');
 
   lines.push('Summary');

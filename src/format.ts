@@ -78,6 +78,19 @@ function countCheckBuckets(runs: CheckRunSummary[]): CheckBucketCounts {
   return counts;
 }
 
+function splitCheckName(name: string): { group: string; label: string } {
+  // GitHub Actions check names commonly look like:
+  //   "CI / test (ubuntu-latest)" or "build / linux".
+  // For non-matching names, keep everything under a default group.
+  const sep = ' / ';
+  const idx = name.indexOf(sep);
+  if (idx === -1) return { group: 'checks', label: name };
+
+  const group = name.slice(0, idx).trim() || 'checks';
+  const label = name.slice(idx + sep.length).trim() || name;
+  return { group, label };
+}
+
 export function formatChecksGrouped(runs: CheckRunSummary[]): string {
   if (runs.length === 0) return '';
 
@@ -95,12 +108,25 @@ export function formatChecksGrouped(runs: CheckRunSummary[]): string {
     if (!items || items.length === 0) continue;
 
     lines.push(`${b} (${items.length})`);
-    const sorted = [...items].sort((a, c) => a.name.localeCompare(c.name));
-    for (const r of sorted) {
-      const concl = r.conclusion ?? '-';
-      const url = r.detailsUrl ?? '';
-      lines.push(`  - ${r.name}: ${r.status}${concl !== '-' ? `/${concl}` : ''}${url ? ` ${url}` : ''}`);
+
+    // Within each bucket, group checks by a stable "suite" name (when present)
+    // to keep large outputs readable.
+    const groups = groupByKey(items, (r) => splitCheckName(r.name).group).sort((a, c) => a.key.localeCompare(c.key));
+    for (const g of groups) {
+      // Only show a subgroup header when it adds information.
+      const showHeader = !(groups.length === 1 && g.key === 'checks');
+      if (showHeader) lines.push(`  ${g.key} (${g.items.length})`);
+
+      const sorted = [...g.items].sort((a, c) => a.name.localeCompare(c.name));
+      for (const r of sorted) {
+        const { label } = splitCheckName(r.name);
+        const concl = r.conclusion ?? '-';
+        const url = r.detailsUrl ?? '';
+        const prefix = showHeader ? '    -' : '  -';
+        lines.push(`${prefix} ${label}: ${r.status}${concl !== '-' ? `/${concl}` : ''}${url ? ` ${url}` : ''}`);
+      }
     }
+
     lines.push('');
   }
 

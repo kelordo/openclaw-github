@@ -49,6 +49,30 @@ describe('text formatters', () => {
     expect(pendingIdx).toBeLessThan(successIdx);
   });
 
+  it('groups checks by "suite" when names contain " / "', () => {
+    const out = formatChecksGrouped([
+      { id: 1, name: 'CI / test', status: 'completed', conclusion: 'failure', detailsUrl: null },
+      { id: 2, name: 'CI / lint', status: 'completed', conclusion: 'success', detailsUrl: null },
+      { id: 3, name: 'Release / build', status: 'in_progress', conclusion: null, detailsUrl: null },
+    ]);
+
+    expect(out).toContain('failed (1)');
+    expect(out).toContain('pending (1)');
+    expect(out).toContain('success (1)');
+
+    // subgroup headers are per bucket
+    expect(out).toContain('failed (1)');
+    expect(out).toContain('  CI (1)');
+    expect(out).toContain('pending (1)');
+    expect(out).toContain('  Release (1)');
+    expect(out).toContain('success (1)');
+
+    // labels should not repeat the suite prefix
+    expect(out).toContain('- test:');
+    expect(out).toContain('- lint:');
+    expect(out).toContain('- build:');
+  });
+
   it('formats a plan summary', () => {
     const out = formatPrPlanText({
       pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },

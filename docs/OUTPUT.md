@@ -106,6 +106,8 @@ If there are any checks/comments, it also prints an `Action items` section that 
 
 Then it prints the full grouped comment and check blocks, indented under their section headers to keep the overall output readable.
 
+Use `--only-attention` to print just the header + `Summary` + `Action items` (skips the full grouped comment/check sections).
+
 Example (abridged):
 
 ```text

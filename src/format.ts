@@ -230,12 +230,16 @@ function formatCheckSummary(counts: CheckBucketCounts): string {
   return parts.join(' ');
 }
 
-export function formatPrPlanText(input: {
-  pull: PullDetails;
-  comments: ReviewComment[];
-  checks: CheckRunSummary[];
-}): string {
+export function formatPrPlanText(
+  input: {
+    pull: PullDetails;
+    comments: ReviewComment[];
+    checks: CheckRunSummary[];
+  },
+  opts?: { mode?: 'full' | 'attention' },
+): string {
   const { pull, comments, checks } = input;
+  const mode = opts?.mode ?? 'full';
 
   const commentFileCount = new Set(comments.map((c) => c.path)).size;
   const checkCounts = countCheckBuckets(checks);
@@ -421,6 +425,10 @@ export function formatPrPlanText(input: {
     }
 
     lines.push('');
+  }
+
+  if (mode === 'attention') {
+    return lines.join('\n').trimEnd() + '\n';
   }
 
   lines.push(`Review comments (all) (${comments.length})`);

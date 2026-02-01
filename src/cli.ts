@@ -18,7 +18,7 @@ function usage(): string {
     '  pr-autopilot pr list --repo owner/name [--state open|closed|all] [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr comments (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr checks (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]',
-    '  pr-autopilot pr plan (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]',
+    '  pr-autopilot pr plan (--repo owner/name --pr <number> | --pr-url <url>) [--only-attention] [--json] [--pretty] [--json-envelope]',
     '',
     'Env:',
     '  GITHUB_TOKEN (required for GitHub commands)',
@@ -160,7 +160,11 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
       return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
-    return { code: 0, stdout: formatPrPlanText({ pull, comments, checks }) };
+    if (hasFlag(args, '--only-attention')) {
+      return { code: 0, stdout: formatPrPlanText({ pull, comments, checks }, { mode: 'attention' }) };
+    }
+
+    return { code: 0, stdout: formatPrPlanText({ pull, comments, checks }, { mode: 'full' }) };
   }
 
   return { code: 2, stderr: `Unknown command: ${args.join(' ')}\n\n${usage()}` };

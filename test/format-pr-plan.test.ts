@@ -243,4 +243,47 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('- Unknown (1)');
     expect(out).toContain('weird: completed https://example.com/unknown');
   });
+
+  it('supports --only-attention mode by omitting full comment/check sections', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const comments: ReviewComment[] = [
+      {
+        id: 1,
+        pullRequestReviewId: 10,
+        userLogin: 'alice',
+        path: 'a.ts',
+        position: 1,
+        body: 'Please fix this',
+        createdAt: '2026-01-01T00:00:00Z',
+        htmlUrl: 'u',
+      },
+    ];
+
+    const checks: CheckRunSummary[] = [
+      {
+        id: 1,
+        name: 'CI / test',
+        status: 'completed',
+        conclusion: 'failure',
+        detailsUrl: 'https://example.com/fail',
+      },
+    ];
+
+    const out = formatPrPlanText({ pull, comments, checks }, { mode: 'attention' });
+
+    expect(out).toContain('Summary');
+    expect(out).toContain('Action items');
+
+    expect(out).not.toContain('Review comments (all)');
+    expect(out).not.toContain('Checks (all)');
+  });
 });

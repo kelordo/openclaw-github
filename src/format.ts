@@ -415,12 +415,12 @@ export function formatPrPlanText(input: {
     lines.push('');
   }
 
-  lines.push(`Review comments (${comments.length})`);
+  lines.push(`Review comments (all) (${comments.length})`);
   if (comments.length === 0) lines.push('  (none)');
   else lines.push(indentBlock(formatCommentsGrouped(comments).trimEnd()));
   lines.push('');
 
-  lines.push(`Checks (${checks.length})`);
+  lines.push(`Checks (all) (${checks.length})`);
   if (checks.length === 0) lines.push('  (none)');
   else lines.push(indentBlock(formatChecksGrouped(checks).trimEnd()));
 

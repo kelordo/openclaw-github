@@ -242,8 +242,8 @@ describe('text formatters', () => {
     expect(out).toContain('Summary');
     expect(out).toContain('Comments: 0 across 0 files');
     expect(out).toContain('Checks: 0');
-    expect(out).toContain('Review comments (0)');
-    expect(out).toContain('Checks (0)');
+    expect(out).toContain('Review comments (all) (0)');
+    expect(out).toContain('Checks (all) (0)');
   });
 
   it('surfaces a small preview of review comments in the plan action items section', () => {
@@ -265,7 +265,7 @@ describe('text formatters', () => {
     });
 
     expect(out).toContain('Action items');
-    expect(out).toContain('Review comments (1)');
+    expect(out).toContain('Review comments (all) (1)');
     expect(out).toContain('- a.ts (1)');
     expect(out).toContain('alice (pos 10): Please rename this variable c1');
   });
@@ -323,7 +323,7 @@ describe('text formatters', () => {
     });
 
     expect(out).toContain('Action items');
-    expect(out).toContain('Review comments (2)');
+    expect(out).toContain('Review comments (all) (2)');
     expect(out).toContain('- a.ts (2)');
     expect(out).toContain('Review 10 (1)');
     expect(out).toContain('Review 11 (1)');
@@ -393,7 +393,7 @@ describe('text formatters', () => {
       checks: [{ id: 1, name: 'CI / test', status: 'completed', conclusion: 'failure', detailsUrl: null }],
     });
 
-    expect(out).toContain('Review comments (1)\n  a.ts (1)');
-    expect(out).toContain('Checks (1)\n  failed (1)');
+    expect(out).toContain('Review comments (all) (1)\n  a.ts (1)');
+    expect(out).toContain('Checks (all) (1)\n  failed (1)');
   });
 });

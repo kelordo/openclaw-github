@@ -22,7 +22,17 @@ Current schema ids:
 
 ```json
 {
-  "pull": { "number": 12, "title": "...", "state": "open", "htmlUrl": "...", "headSha": "..." },
+  "pull": {
+    "number": 12,
+    "title": "...",
+    "state": "open",
+    "htmlUrl": "...",
+    "authorLogin": "alice",
+    "baseRef": "main",
+    "headRef": "feature/thing",
+    "mergeable": true,
+    "headSha": "..."
+  },
   "comments": [ { "id": 123, "path": "src/cli.ts", "body": "...", "userLogin": "alice", "position": 10 } ],
   "checks": [ { "id": 456, "name": "CI / test", "status": "completed", "conclusion": "success", "detailsUrl": "..." } ]
 }

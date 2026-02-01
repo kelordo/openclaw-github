@@ -108,7 +108,19 @@ describe('github api wrapper', () => {
 
     const api = createGitHubApi(octokit);
     const pr = await api.getPull({ owner: 'o', repo: 'r', pullNumber: 7 });
-    expect(pr).toEqual({ number: 7, title: 'Hello', state: 'open', draft: true, merged: false, htmlUrl: 'u', headSha: 'abc' });
+    expect(pr).toEqual({
+      number: 7,
+      title: 'Hello',
+      state: 'open',
+      draft: true,
+      merged: false,
+      htmlUrl: 'u',
+      authorLogin: null,
+      baseRef: undefined,
+      headRef: undefined,
+      mergeable: undefined,
+      headSha: 'abc',
+    });
   });
 
   it('listCheckRunsForPull uses PR head sha', async () => {

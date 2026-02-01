@@ -10,7 +10,10 @@ const fakeOctokit = {
         state: 'open',
         draft: false,
         html_url: 'https://github.com/o/r/pull/1',
-        head: { sha: 'abc123' },
+        user: { login: 'alice' },
+        base: { ref: 'main' },
+        head: { sha: 'abc123', ref: 'feature/plan' },
+        mergeable: true,
       },
     })),
     listReviewComments: vi.fn(async () => ({
@@ -118,6 +121,9 @@ describe('cli pr plan', () => {
 
       const out = writes.join('');
       expect(out).toContain('PR #1:');
+      expect(out).toContain('Author: alice');
+      expect(out).toContain('Branches: main <- feature/plan');
+      expect(out).toContain('Mergeable: yes');
       expect(out).toContain('Summary');
       expect(out).toContain('Action items');
       expect(out).toContain('Checks needing attention');

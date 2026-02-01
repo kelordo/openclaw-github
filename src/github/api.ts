@@ -35,6 +35,13 @@ export type PullDetails = {
   draft?: boolean;
   merged?: boolean;
   htmlUrl: string;
+
+  // Useful PR metadata for `pr plan`.
+  authorLogin?: string | null;
+  baseRef?: string;
+  headRef?: string;
+  mergeable?: boolean | null;
+
   headSha: string;
 };
 
@@ -121,11 +128,28 @@ const PullGetSchema = z.object({
   merged: z.boolean().optional(),
   merged_at: z.string().nullable().optional(),
   html_url: z.string().optional(),
+
+  user: z
+    .object({
+      login: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+
+  base: z
+    .object({
+      ref: z.string().optional(),
+    })
+    .optional(),
+
   head: z
     .object({
       sha: z.string().optional(),
+      ref: z.string().optional(),
     })
     .optional(),
+
+  mergeable: z.boolean().nullable().optional(),
 });
 
 const CheckRunSchema = z.object({
@@ -188,6 +212,10 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
       draft: pr.draft,
       merged,
       htmlUrl: pr.html_url,
+      authorLogin: pr.user?.login ?? null,
+      baseRef: pr.base?.ref,
+      headRef: pr.head?.ref,
+      mergeable: pr.mergeable,
       headSha,
     };
   }

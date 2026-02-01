@@ -244,6 +244,15 @@ export function formatPrPlanText(input: {
   const lines: string[] = [];
   lines.push(`PR #${pull.number}: ${pull.title}`);
   lines.push(`${pull.htmlUrl}`);
+
+  const metaParts: string[] = [];
+  if (pull.authorLogin) metaParts.push(`Author: ${pull.authorLogin}`);
+  if (pull.baseRef || pull.headRef) metaParts.push(`Branches: ${pull.baseRef ?? '?'} <- ${pull.headRef ?? '?'}`);
+  if (pull.mergeable != null) metaParts.push(`Mergeable: ${pull.mergeable ? 'yes' : 'no'}`);
+  if (metaParts.length) {
+    for (const part of metaParts) lines.push(part);
+  }
+
   lines.push(`State: ${pull.state}${pull.merged ? ' (merged)' : ''}${pull.draft ? ' (draft)' : ''}`);
   lines.push('');
 

@@ -2,4 +2,7 @@ node_modules
 /dist
 .env
 .DS_Store
+
+# local scratchpad / run logs
+memory/
 /memory

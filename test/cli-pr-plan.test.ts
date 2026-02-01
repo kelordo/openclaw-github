@@ -1,0 +1,130 @@
+import { describe, expect, it, vi } from 'vitest';
+
+const fakeOctokit = {
+  pulls: {
+    // Only the parts needed by `pr plan`.
+    get: vi.fn(async () => ({
+      data: {
+        number: 1,
+        title: 'Add pr plan command',
+        state: 'open',
+        draft: false,
+        html_url: 'https://github.com/o/r/pull/1',
+        head: { sha: 'abc123' },
+      },
+    })),
+    listReviewComments: vi.fn(async () => ({
+      data: [
+        {
+          id: 101,
+          pull_request_review_id: 555,
+          user: { login: 'alice' },
+          path: 'src/cli.ts',
+          position: 10,
+          body: 'Please add a test.',
+          created_at: '2026-01-01T00:00:00Z',
+          html_url: 'https://github.com/o/r/pull/1#discussion_r101',
+        },
+      ],
+    })),
+    list: vi.fn(async () => ({ data: [] })),
+  },
+  checks: {
+    listForRef: vi.fn(async () => ({
+      data: {
+        check_runs: [
+          {
+            id: 201,
+            name: 'CI / test (ubuntu-latest)',
+            status: 'completed',
+            conclusion: 'failure',
+            details_url: 'https://github.com/o/r/actions/runs/1',
+          },
+          {
+            id: 202,
+            name: 'CI / lint',
+            status: 'completed',
+            conclusion: 'success',
+            details_url: 'https://github.com/o/r/actions/runs/2',
+          },
+        ],
+      },
+    })),
+  },
+};
+
+vi.mock('../src/github/octokit.js', () => ({
+  createOctokit: vi.fn(() => fakeOctokit),
+}));
+
+// Import after mocks.
+import { main } from '../src/cli.js';
+
+describe('cli pr plan', () => {
+  it('prints JSON when --json is set', async () => {
+    process.env.GITHUB_TOKEN = 'test-token';
+
+    const writes: string[] = [];
+    const origWrite = process.stdout.write;
+    process.stdout.write = (chunk: unknown) => {
+      writes.push(String(chunk));
+      return true;
+    };
+
+    try {
+      const code = await main([
+        'node',
+        'pr-autopilot',
+        'pr',
+        'plan',
+        '--repo',
+        'o/r',
+        '--pr',
+        '1',
+        '--json',
+      ]);
+      expect(code).toBe(0);
+
+      const text = writes.join('');
+      const parsed = JSON.parse(text) as {
+        pull: { number: number };
+        comments: unknown[];
+        checks: unknown[];
+      };
+      expect(parsed).toHaveProperty('pull');
+      expect(parsed.pull.number).toBe(1);
+      expect(parsed).toHaveProperty('comments');
+      expect(parsed.comments).toHaveLength(1);
+      expect(parsed).toHaveProperty('checks');
+      expect(parsed.checks).toHaveLength(2);
+    } finally {
+      process.stdout.write = origWrite;
+    }
+  });
+
+  it('prints grouped text by default', async () => {
+    process.env.GITHUB_TOKEN = 'test-token';
+
+    const writes: string[] = [];
+    const origWrite = process.stdout.write;
+    process.stdout.write = (chunk: unknown) => {
+      writes.push(String(chunk));
+      return true;
+    };
+
+    try {
+      const code = await main(['node', 'pr-autopilot', 'pr', 'plan', '--repo', 'o/r', '--pr', '1']);
+      expect(code).toBe(0);
+
+      const out = writes.join('');
+      expect(out).toContain('PR #1:');
+      expect(out).toContain('Summary');
+      expect(out).toContain('Action items');
+      expect(out).toContain('Failing checks');
+      expect(out).toContain('Review comments');
+      expect(out).toContain('Checks');
+    } finally {
+      process.stdout.write = origWrite;
+    }
+  });
+});

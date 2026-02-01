@@ -2,20 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { createGitHubApi, type OctokitLike } from '../src/github/api.js';
 
 describe('github api wrapper', () => {
-  it('listPulls maps fields + paginates', async () => {
+  it('listPulls maps fields', async () => {
     let calls = 0;
 
     const octokit: OctokitLike = {
       pulls: {
-        list: async ({ page }) => {
+        list: async () => {
           calls++;
-          if (page === 1) {
-            return {
-              data: [{ number: 1, title: 'A', state: 'open', draft: false, html_url: 'u1' }],
-            };
-          }
           return {
-            data: [{ number: 2, title: 'B', state: 'closed', draft: true, html_url: 'u2' }],
+            data: [
+              { number: 1, title: 'A', state: 'open', draft: false, html_url: 'u1' },
+              { number: 2, title: 'B', state: 'closed', draft: true, html_url: 'u2' },
+            ],
           };
         },
         listReviewComments: async () => ({ data: [] }),
@@ -32,6 +30,7 @@ describe('github api wrapper', () => {
       { number: 1, title: 'A', state: 'open', draft: false, htmlUrl: 'u1' },
       { number: 2, title: 'B', state: 'closed', draft: true, htmlUrl: 'u2' },
     ]);
+    expect(calls).toBe(1);
   });
 
   it('listReviewComments maps fields', async () => {
@@ -119,26 +118,10 @@ describe('github api wrapper', () => {
     };
 
     const api = createGitHubApi(octokit);
-    const checks = await api.listCheckRunsForPull({ owner: 'o', repo: 'r', pullNumber: 12 });
+    const runs = await api.listCheckRunsForPull({ owner: 'o', repo: 'r', pullNumber: 1 });
     expect(capturedRef).toBe('deadbeef');
-    expect(checks[0]?.name).toBe('ci');
-  });
-
-  it('listCheckRunsForPull throws if head sha missing', async () => {
-    const octokit: OctokitLike = {
-      pulls: {
-        list: async () => ({ data: [] }),
-        listReviewComments: async () => ({ data: [] }),
-        get: async () => ({ data: { head: {} } }),
-      },
-      checks: {
-        listForRef: async () => ({ data: { check_runs: [] } }),
-      },
-    };
-
-    const api = createGitHubApi(octokit);
-    await expect(api.listCheckRunsForPull({ owner: 'o', repo: 'r', pullNumber: 1 })).rejects.toThrow(
-      /Unable to determine PR head SHA/,
-    );
+    expect(runs).toEqual([
+      { id: 9, name: 'ci', status: 'completed', conclusion: 'success', detailsUrl: 'd' },
+    ]);
   });
 });

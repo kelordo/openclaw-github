@@ -2,6 +2,7 @@ import { readEnv, parseRepoSlug } from './config.js';
 import { createOctokit } from './github/octokit.js';
 import { createGitHubApi } from './github/api.js';
 import { formatJson } from './output.js';
+import { formatCliError } from './errors.js';
 
 type CommandResult = { code: number; stdout?: string; stderr?: string };
 
@@ -11,9 +12,9 @@ function usage(): string {
     '',
     'Usage:',
     '  pr-autopilot ping',
-    '  pr-autopilot pr list --repo owner/name [--state open|closed|all] [--json] [--pretty]',
-    '  pr-autopilot pr comments --repo owner/name --pr <number> [--json] [--pretty]',
-    '  pr-autopilot pr checks --repo owner/name --pr <number> [--json] [--pretty]',
+    '  pr-autopilot pr list --repo owner/name [--state open|closed|all] [--json] [--pretty] [--json-envelope]',
+    '  pr-autopilot pr comments --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]',
+    '  pr-autopilot pr checks --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]',
     '',
     'Env:',
     '  GITHUB_TOKEN (required for GitHub commands)',
@@ -52,9 +53,9 @@ export async function main(argv: string[]): Promise<number> {
     if (res.stderr) process.stderr.write(res.stderr);
     return res.code;
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`${msg}\n`);
-    return 2;
+    const formatted = formatCliError(err);
+    process.stderr.write(`${formatted.message}\n`);
+    return formatted.code;
   }
 }
 
@@ -74,7 +75,10 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
     const prs = await api.listPulls({ owner, repo, state });
 
     if (hasFlag(args, '--json')) {
-      return { code: 0, stdout: formatJson(prs, { pretty: hasFlag(args, '--pretty') }) };
+      const payload = hasFlag(args, '--json-envelope')
+        ? { schema: 'pr-autopilot/pr-list@1', data: prs }
+        : prs;
+      return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
     const out = prs
@@ -97,7 +101,10 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
     const comments = await api.listReviewComments({ owner, repo, pullNumber });
 
     if (hasFlag(args, '--json')) {
-      return { code: 0, stdout: formatJson(comments, { pretty: hasFlag(args, '--pretty') }) };
+      const payload = hasFlag(args, '--json-envelope')
+        ? { schema: 'pr-autopilot/pr-comments@1', data: comments }
+        : comments;
+      return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
     const out = comments
@@ -120,7 +127,10 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
     const checks = await api.listCheckRunsForPull({ owner, repo, pullNumber });
 
     if (hasFlag(args, '--json')) {
-      return { code: 0, stdout: formatJson(checks, { pretty: hasFlag(args, '--pretty') }) };
+      const payload = hasFlag(args, '--json-envelope')
+        ? { schema: 'pr-autopilot/pr-checks@1', data: checks }
+        : checks;
+      return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
     const out = checks

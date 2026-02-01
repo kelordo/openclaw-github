@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type PullRequestSummary = {
   number: number;
   title: string;
@@ -73,6 +75,54 @@ export type OctokitLike = {
   };
 };
 
+const PullSchema = z.object({
+  number: z.number(),
+  title: z.string(),
+  state: z.union([z.literal('open'), z.literal('closed')]),
+  draft: z.boolean().optional(),
+  html_url: z.string(),
+});
+
+const ReviewCommentSchema = z.object({
+  id: z.number(),
+  pull_request_review_id: z.number().nullable().optional(),
+  user: z
+    .object({
+      login: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  path: z.string(),
+  position: z.number().nullable().optional(),
+  body: z.string().nullable().optional(),
+  created_at: z.string(),
+  html_url: z.string(),
+});
+
+const PullGetSchema = z.object({
+  head: z
+    .object({
+      sha: z.string().optional(),
+    })
+    .optional(),
+});
+
+const CheckRunSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  status: z.string(),
+  conclusion: z.string().nullable().optional(),
+  details_url: z.string().nullable().optional(),
+});
+
+function parseOrThrow<T>(schema: z.ZodSchema<T>, value: unknown, what: string): T {
+  const res = schema.safeParse(value);
+  if (!res.success) {
+    throw new Error(`Unexpected GitHub API response for ${what}`);
+  }
+  return res.data;
+}
+
 export function createGitHubApi(octokit: OctokitLike): GitHubApi {
   return {
     async listPulls({ owner, repo, state = 'open' }) {
@@ -86,13 +136,7 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
       }
 
       return data.map((prUnknown) => {
-        const pr = prUnknown as {
-          number: number;
-          title: string;
-          state: 'open' | 'closed';
-          draft?: boolean;
-          html_url: string;
-        };
+        const pr = parseOrThrow(PullSchema, prUnknown, 'pulls.list item');
         return {
           number: pr.number,
           title: pr.title,
@@ -120,16 +164,7 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
       }
 
       return data.map((cUnknown) => {
-        const c = cUnknown as {
-          id: number;
-          pull_request_review_id?: number | null;
-          user?: { login?: string | null } | null;
-          path: string;
-          position?: number | null;
-          body?: string | null;
-          created_at: string;
-          html_url: string;
-        };
+        const c = parseOrThrow(ReviewCommentSchema, cUnknown, 'pulls.listReviewComments item');
         return {
           id: c.id,
           pullRequestReviewId: c.pull_request_review_id ?? null,
@@ -145,7 +180,7 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
 
     async listCheckRunsForPull({ owner, repo, pullNumber }) {
       const prRes = await octokit.pulls.get({ owner, repo, pull_number: pullNumber });
-      const pr = prRes.data as { head?: { sha?: string } };
+      const pr = parseOrThrow(PullGetSchema, prRes.data, 'pulls.get');
       const headSha = pr.head?.sha;
       if (!headSha) throw new Error('Unable to determine PR head SHA');
 
@@ -159,13 +194,7 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
       }
 
       return runs.map((rUnknown) => {
-        const r = rUnknown as {
-          id: number;
-          name: string;
-          status: string;
-          conclusion?: string | null;
-          details_url?: string | null;
-        };
+        const r = parseOrThrow(CheckRunSchema, rUnknown, 'checks.listForRef check_run');
         return {
           id: r.id,
           name: r.name,

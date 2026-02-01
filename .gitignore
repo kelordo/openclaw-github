@@ -2,3 +2,8 @@ node_modules
 /dist
 .env
 .DS_Store
+pnpm-lock.yaml
+
+# local scratchpad / run logs
+memory/
+/memory

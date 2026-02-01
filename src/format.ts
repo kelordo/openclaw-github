@@ -1,0 +1,497 @@
+import type { CheckRunSummary, PullDetails, PullRequestSummary, ReviewComment } from './github/api.js';
+
+export function normalizeOneLine(s: string): string {
+  return s.replaceAll(/\s+/g, ' ').trim();
+}
+
+function indentBlock(text: string, prefix = '  '): string {
+  return text
+    .split('\n')
+    .map((line) => (line.length ? prefix + line : line))
+    .join('\n');
+}
+
+type Group<T> = { key: string; items: T[] };
+
+export function groupByKey<T>(items: T[], keyFn: (t: T) => string): Group<T>[] {
+  const map = new Map<string, T[]>();
+  for (const item of items) {
+    const key = keyFn(item);
+    const arr = map.get(key);
+    if (arr) arr.push(item);
+    else map.set(key, [item]);
+  }
+  return [...map.entries()].map(([key, items]) => ({ key, items }));
+}
+
+function compareNullableNumber(a: number | null, b: number | null): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return a - b;
+}
+
+export function formatPullsGrouped(prs: PullRequestSummary[]): string {
+  if (prs.length === 0) return '';
+
+  // Bucket PRs into action-oriented groups. This keeps output stable across
+  // different `--state` values and surfaces what you likely care about first.
+  type Bucket = 'open' | 'draft' | 'merged' | 'closed';
+
+  function bucket(pr: PullRequestSummary): Bucket {
+    if (pr.state === 'open') return pr.draft ? 'draft' : 'open';
+    return pr.merged ? 'merged' : 'closed';
+  }
+
+  const BUCKET_ORDER: Bucket[] = ['open', 'draft', 'merged', 'closed'];
+  const groups = groupByKey(prs, (pr) => bucket(pr)).sort(
+    (a, b) => BUCKET_ORDER.indexOf(a.key as Bucket) - BUCKET_ORDER.indexOf(b.key as Bucket),
+  );
+
+  const lines: string[] = [];
+
+  for (const g of groups) {
+    const items = [...g.items].sort((a, b) => b.number - a.number);
+
+    lines.push(`${g.key} (${items.length})`);
+    for (const pr of items) {
+      lines.push(`  - #${pr.number} ${normalizeOneLine(pr.title)} ${pr.htmlUrl}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n').trimEnd() + '\n';
+}
+
+export function formatCommentsGrouped(comments: ReviewComment[]): string {
+  if (comments.length === 0) return '';
+
+  // Show the most-commented files first; this makes it easier to spot where review attention is concentrated.
+  const groups = groupByKey(comments, (c) => c.path).sort(
+    (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
+  );
+  const lines: string[] = [];
+
+  for (const g of groups) {
+    lines.push(`${g.key} (${g.items.length})`);
+
+    // Within each file, group by the review id (thread) when present.
+    // This keeps multi-comment review threads clustered together.
+    const byReview = groupByKey(g.items, (c) => (c.pullRequestReviewId == null ? 'no-review' : String(c.pullRequestReviewId))).sort(
+      (a, b) => {
+        // Keep "no-review" comments at the end.
+        if (a.key === 'no-review' && b.key !== 'no-review') return 1;
+        if (b.key === 'no-review' && a.key !== 'no-review') return -1;
+
+        // Prefer showing the densest review threads first.
+        const lenCmp = b.items.length - a.items.length;
+        if (lenCmp !== 0) return lenCmp;
+
+        // Fall back to stable ordering.
+        const aNum = Number(a.key);
+        const bNum = Number(b.key);
+        if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+
+        return a.key.localeCompare(b.key);
+      },
+    );
+
+    const showReviewHeader = byReview.length > 1 || (byReview.length === 1 && byReview[0]?.key !== 'no-review');
+
+    for (const reviewGroup of byReview) {
+      const header =
+        reviewGroup.key === 'no-review' ? 'Other comments' : `Review ${reviewGroup.key}`;
+      if (showReviewHeader) lines.push(`  ${header} (${reviewGroup.items.length})`);
+
+      const sorted = [...reviewGroup.items].sort((a, b) => {
+        const posCmp = compareNullableNumber(a.position, b.position);
+        if (posCmp !== 0) return posCmp;
+        // createdAt is ISO from GitHub; lexical sort works, but keep safe.
+        const dateCmp = a.createdAt.localeCompare(b.createdAt);
+        if (dateCmp !== 0) return dateCmp;
+        return a.id - b.id;
+      });
+
+      const positioned = sorted.filter((c) => c.position != null);
+      const unpositioned = sorted.filter((c) => c.position == null);
+      const showDiffBuckets = positioned.length > 0 && unpositioned.length > 0;
+
+      function emitCommentLines(items: ReviewComment[], prefix: string) {
+        for (const c of items) {
+          const who = c.userLogin ?? 'unknown';
+          const body = normalizeOneLine(c.body);
+          const pos = c.position != null ? ` (pos ${c.position})` : '';
+          const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+          lines.push(`${prefix} #${c.id} ${who}${pos}: ${body}${url}`);
+        }
+      }
+
+      if (showDiffBuckets) {
+        const sectionIndent = showReviewHeader ? '    ' : '  ';
+        const itemPrefix = showReviewHeader ? '      -' : '    -';
+
+        lines.push(`${sectionIndent}Current diff (${positioned.length})`);
+        emitCommentLines(positioned, itemPrefix);
+
+        lines.push(`${sectionIndent}Outdated (${unpositioned.length})`);
+        emitCommentLines(unpositioned, itemPrefix);
+      } else {
+        const prefix = showReviewHeader ? '    -' : '  -';
+        emitCommentLines(sorted, prefix);
+      }
+    }
+
+    lines.push('');
+  }
+
+  return lines.join('\n').trimEnd() + '\n';
+}
+
+type CheckBucket = 'failed' | 'pending' | 'success' | 'neutral' | 'unknown';
+
+type CheckBucketCounts = Record<CheckBucket, number>;
+
+function bucketCheck(r: CheckRunSummary): CheckBucket {
+  const status = r.status;
+  const conclusion = r.conclusion;
+
+  if (status !== 'completed') return 'pending';
+  if (conclusion === 'success') return 'success';
+  if (conclusion === 'neutral' || conclusion === 'skipped' || conclusion === 'cancelled') return 'neutral';
+  if (conclusion === 'failure' || conclusion === 'timed_out' || conclusion === 'action_required') return 'failed';
+  return 'unknown';
+}
+
+const BUCKET_ORDER: CheckBucket[] = ['failed', 'pending', 'unknown', 'neutral', 'success'];
+
+function countCheckBuckets(runs: CheckRunSummary[]): CheckBucketCounts {
+  const counts: CheckBucketCounts = { failed: 0, pending: 0, success: 0, neutral: 0, unknown: 0 };
+  for (const r of runs) counts[bucketCheck(r)]++;
+  return counts;
+}
+
+function splitCheckName(name: string): { group: string; label: string } {
+  // GitHub Actions check names commonly look like:
+  //   "CI / test (ubuntu-latest)" or "build / linux".
+  // For non-matching names, keep everything under a default group.
+  const sep = ' / ';
+  const idx = name.indexOf(sep);
+  if (idx === -1) return { group: 'checks', label: name };
+
+  const group = name.slice(0, idx).trim() || 'checks';
+  const label = name.slice(idx + sep.length).trim() || name;
+  return { group, label };
+}
+
+function formatCheckStatus(r: CheckRunSummary): string {
+  const concl = r.conclusion ?? '-';
+  return `${r.status}${concl !== '-' ? `/${concl}` : ''}`;
+}
+
+export function formatChecksGrouped(runs: CheckRunSummary[]): string {
+  if (runs.length === 0) return '';
+
+  const buckets = new Map<CheckBucket, CheckRunSummary[]>();
+  for (const r of runs) {
+    const b = bucketCheck(r);
+    const arr = buckets.get(b);
+    if (arr) arr.push(r);
+    else buckets.set(b, [r]);
+  }
+
+  const lines: string[] = [];
+
+  const summary = formatCheckSummary(countCheckBuckets(runs));
+  if (summary) {
+    lines.push(`Summary: ${summary}`);
+    lines.push('');
+  }
+
+  for (const b of BUCKET_ORDER) {
+    const items = buckets.get(b);
+    if (!items || items.length === 0) continue;
+
+    lines.push(`${b} (${items.length})`);
+
+    // Within each bucket, group checks by a stable "suite" name (when present)
+    // to keep large outputs readable.
+    const groups = groupByKey(items, (r) => splitCheckName(r.name).group).sort(
+      (a, c) => c.items.length - a.items.length || a.key.localeCompare(c.key),
+    );
+    for (const g of groups) {
+      // Only show a subgroup header when it adds information.
+      const showHeader = !(groups.length === 1 && g.key === 'checks');
+      if (showHeader) lines.push(`  ${g.key} (${g.items.length})`);
+
+      const sorted = [...g.items].sort((a, c) => {
+        const la = splitCheckName(a.name).label;
+        const lb = splitCheckName(c.name).label;
+        const cmp = la.localeCompare(lb);
+        return cmp !== 0 ? cmp : a.name.localeCompare(c.name);
+      });
+      for (const r of sorted) {
+        const { label } = splitCheckName(r.name);
+        const url = r.detailsUrl ?? '';
+        const prefix = showHeader ? '    -' : '  -';
+        lines.push(`${prefix} ${label}: ${formatCheckStatus(r)}${url ? ` ${url}` : ''}`);
+      }
+    }
+
+    lines.push('');
+  }
+
+  return lines.join('\n').trimEnd() + '\n';
+}
+
+function formatCheckSummary(counts: CheckBucketCounts): string {
+  const parts: string[] = [];
+  for (const b of BUCKET_ORDER) {
+    const n = counts[b];
+    if (n <= 0) continue;
+    parts.push(`${b}=${n}`);
+  }
+  return parts.join(' ');
+}
+
+export function formatPrPlanText(
+  input: {
+    pull: PullDetails;
+    comments: ReviewComment[];
+    checks: CheckRunSummary[];
+  },
+  opts?: { mode?: 'full' | 'attention' },
+): string {
+  const { pull, comments, checks } = input;
+  const mode = opts?.mode ?? 'full';
+
+  const commentFileCount = new Set(comments.map((c) => c.path)).size;
+  const checkCounts = countCheckBuckets(checks);
+
+  const lines: string[] = [];
+  lines.push(`PR #${pull.number}: ${pull.title}`);
+  lines.push(`${pull.htmlUrl}`);
+
+  const metaParts: string[] = [];
+  if (pull.authorLogin) metaParts.push(`Author: ${pull.authorLogin}`);
+  if (pull.baseRef || pull.headRef) metaParts.push(`Branches: ${pull.baseRef ?? '?'} <- ${pull.headRef ?? '?'}`);
+  if (pull.mergeable != null) metaParts.push(`Mergeable: ${pull.mergeable ? 'yes' : 'no'}`);
+  if (metaParts.length) {
+    for (const part of metaParts) lines.push(part);
+  }
+
+  lines.push(`State: ${pull.state}${pull.merged ? ' (merged)' : ''}${pull.draft ? ' (draft)' : ''}`);
+  lines.push('');
+
+  lines.push('Summary');
+  lines.push(`  - Comments: ${comments.length} across ${commentFileCount} file${commentFileCount === 1 ? '' : 's'}`);
+
+  if (comments.length) {
+    const byAuthor = groupByKey(comments, (c) => c.userLogin ?? 'unknown').sort(
+      (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
+    );
+
+    const topN = 3;
+    const shown = byAuthor.slice(0, topN);
+    const hidden = byAuthor.length - shown.length;
+
+    const parts = shown.map((g) => `${g.key}=${g.items.length}`);
+    if (hidden > 0) parts.push(`… +${hidden} more`);
+
+    lines.push(`  - Commenters: ${parts.join(', ')}`);
+  }
+
+  lines.push(`  - Checks: ${checks.length}${checks.length ? ` (${formatCheckSummary(checkCounts)})` : ''}`);
+  lines.push('');
+
+  // Action-oriented grouping: surface what likely needs attention first.
+  const failedChecks = checks.filter((c) => bucketCheck(c) === 'failed');
+  const pendingChecks = checks.filter((c) => bucketCheck(c) === 'pending');
+  const unknownChecks = checks.filter((c) => bucketCheck(c) === 'unknown');
+  const commentByFile = groupByKey(comments, (c) => c.path).sort((a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key));
+
+  if (failedChecks.length || pendingChecks.length || unknownChecks.length || comments.length) {
+    lines.push('Action items');
+
+    const attentionChecks = [...failedChecks, ...pendingChecks, ...unknownChecks];
+    if (attentionChecks.length) {
+      lines.push(`  - Checks needing attention (${attentionChecks.length})`);
+
+      const sections: { label: string; items: CheckRunSummary[] }[] = [
+        { label: 'Failing', items: failedChecks },
+        { label: 'Pending', items: pendingChecks },
+        { label: 'Unknown', items: unknownChecks },
+      ];
+
+      for (const section of sections) {
+        if (section.items.length === 0) continue;
+        lines.push(`    - ${section.label} (${section.items.length})`);
+
+        const grouped = groupByKey(section.items, (r) => splitCheckName(r.name).group).sort(
+          (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
+        );
+
+        for (const g of grouped) {
+          const showHeader = !(grouped.length === 1 && g.key === 'checks');
+          if (showHeader) lines.push(`      ${g.key} (${g.items.length})`);
+
+          const sorted = [...g.items].sort((a, b) => {
+            const la = splitCheckName(a.name).label;
+            const lb = splitCheckName(b.name).label;
+            const cmp = la.localeCompare(lb);
+            return cmp !== 0 ? cmp : a.name.localeCompare(b.name);
+          });
+
+          for (const r of sorted) {
+            const { label } = splitCheckName(r.name);
+            const url = r.detailsUrl ?? '';
+            const prefix = showHeader ? '        -' : '      -';
+            lines.push(`${prefix} ${label}: ${formatCheckStatus(r)}${url ? ` ${url}` : ''}`);
+          }
+        }
+      }
+    }
+
+    if (comments.length) {
+      lines.push(`  - Review comments (${comments.length})`);
+
+      // Keep the action-items section short: show the most-commented files first,
+      // then elide the rest.
+      const maxFiles = 5;
+      const shownFiles = commentByFile.slice(0, maxFiles);
+      const hiddenFiles = commentByFile.length - shownFiles.length;
+
+      for (const f of shownFiles) {
+        lines.push(`    - ${f.key} (${f.items.length})`);
+
+        // Mirror `formatCommentsGrouped` structure: within each file, cluster by review id when possible.
+        const byReview = groupByKey(f.items, (c) => (c.pullRequestReviewId == null ? 'no-review' : String(c.pullRequestReviewId))).sort(
+          (a, b) => {
+            // Keep "no-review" comments at the end.
+            if (a.key === 'no-review' && b.key !== 'no-review') return 1;
+            if (b.key === 'no-review' && a.key !== 'no-review') return -1;
+
+            // Prefer showing the densest review threads first.
+            const lenCmp = b.items.length - a.items.length;
+            if (lenCmp !== 0) return lenCmp;
+
+            // Fall back to stable ordering.
+            const aNum = Number(a.key);
+            const bNum = Number(b.key);
+            if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum;
+
+            return a.key.localeCompare(b.key);
+          },
+        );
+
+        const showReviewHeader = byReview.length > 1 || (byReview.length === 1 && byReview[0]?.key !== 'no-review');
+
+        const maxPreview = 3;
+        let shown = 0;
+
+        // When there are multiple review threads, prefer showing at least one
+        // comment from more threads (up to maxPreview) instead of exhausting the
+        // entire preview budget on the first thread.
+        const sortedGroups = byReview.map((g) => {
+          const sorted = [...g.items].sort((a, b) => {
+            const posCmp = compareNullableNumber(a.position, b.position);
+            if (posCmp !== 0) return posCmp;
+            const dateCmp = a.createdAt.localeCompare(b.createdAt);
+            if (dateCmp !== 0) return dateCmp;
+            return a.id - b.id;
+          });
+          return { key: g.key, items: sorted };
+        });
+
+        const previewGroupCount = Math.min(sortedGroups.length, maxPreview);
+        const base = previewGroupCount > 0 ? Math.floor(maxPreview / previewGroupCount) : 0;
+        let remainder = previewGroupCount > 0 ? maxPreview % previewGroupCount : 0;
+
+        for (let i = 0; i < sortedGroups.length; i++) {
+          if (shown >= maxPreview) break;
+
+          const reviewGroup = sortedGroups[i]!;
+          const allocation = i < previewGroupCount ? base + (remainder-- > 0 ? 1 : 0) : 0;
+          if (allocation <= 0) continue;
+
+          const header = reviewGroup.key === 'no-review' ? 'Other comments' : `Review ${reviewGroup.key}`;
+          if (showReviewHeader) lines.push(`      ${header} (${reviewGroup.items.length})`);
+
+          const positioned = reviewGroup.items.filter((c) => c.position != null);
+          const unpositioned = reviewGroup.items.filter((c) => c.position == null);
+          const showDiffBuckets = positioned.length > 0 && unpositioned.length > 0;
+
+          // Emit up to `allocation` comments from this thread.
+          let emitted = 0;
+
+          const bucketIndent = showReviewHeader ? '        ' : '      ';
+          const bucketItemPrefix = showReviewHeader ? '          -' : '        -';
+          const flatItemPrefix = showReviewHeader ? '        -' : '      -';
+
+          const emitBucket = (label: string, items: ReviewComment[]) => {
+            if (items.length === 0) return;
+            if (shown >= maxPreview) return;
+            if (emitted >= allocation) return;
+
+            lines.push(`${bucketIndent}${label} (${items.length})`);
+
+            for (const c of items) {
+              if (shown >= maxPreview) break;
+              if (emitted >= allocation) break;
+              const who = c.userLogin ?? 'unknown';
+              const body = normalizeOneLine(c.body);
+              const pos = c.position != null ? ` (pos ${c.position})` : ' (no position)';
+              const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+              lines.push(`${bucketItemPrefix} ${who}${pos}: ${body}${url}`);
+              shown++;
+              emitted++;
+            }
+          };
+
+          if (showDiffBuckets) {
+            emitBucket('Current diff', positioned);
+            emitBucket('Outdated', unpositioned);
+          } else {
+            for (const c of reviewGroup.items) {
+              if (shown >= maxPreview) break;
+              if (emitted >= allocation) break;
+              const who = c.userLogin ?? 'unknown';
+              const body = normalizeOneLine(c.body);
+              const pos = c.position != null ? ` (pos ${c.position})` : '';
+              const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+              lines.push(`${flatItemPrefix} ${who}${pos}: ${body}${url}`);
+              shown++;
+              emitted++;
+            }
+          }
+        }
+
+        const remaining = f.items.length - shown;
+        if (remaining > 0) {
+          const prefix = showReviewHeader ? '        -' : '      -';
+          lines.push(`${prefix} … +${remaining} more`);
+        }
+      }
+
+      if (hiddenFiles > 0) {
+        lines.push(`    - … +${hiddenFiles} more file${hiddenFiles === 1 ? '' : 's'}`);
+      }
+    }
+
+    lines.push('');
+  }
+
+  if (mode === 'attention') {
+    return lines.join('\n').trimEnd() + '\n';
+  }
+
+  lines.push(`Review comments (all) (${comments.length})`);
+  if (comments.length === 0) lines.push('  (none)');
+  else lines.push(indentBlock(formatCommentsGrouped(comments).trimEnd()));
+  lines.push('');
+
+  lines.push(`Checks (all) (${checks.length})`);
+  if (checks.length === 0) lines.push('  (none)');
+  else lines.push(indentBlock(formatChecksGrouped(checks).trimEnd()));
+
+  return lines.join('\n').trimEnd() + '\n';
+}

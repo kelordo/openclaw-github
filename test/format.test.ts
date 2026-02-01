@@ -178,6 +178,30 @@ describe('text formatters', () => {
     expect(out).toContain('Checks (0)');
   });
 
+  it('surfaces a small preview of review comments in the plan action items section', () => {
+    const out = formatPrPlanText({
+      pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },
+      comments: [
+        {
+          id: 1,
+          pullRequestReviewId: null,
+          userLogin: 'alice',
+          path: 'a.ts',
+          position: 10,
+          body: 'Please rename this variable',
+          createdAt: '2026-01-01T00:00:00Z',
+          htmlUrl: 'c1',
+        },
+      ],
+      checks: [],
+    });
+
+    expect(out).toContain('Action items');
+    expect(out).toContain('Review comments (1)');
+    expect(out).toContain('- a.ts (1)');
+    expect(out).toContain('alice (pos 10): Please rename this variable c1');
+  });
+
   it('includes bucket counts in the plan summary when checks exist', () => {
     const out = formatPrPlanText({
       pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },

@@ -285,6 +285,32 @@ export function formatPrPlanText(input: {
       lines.push(`  - Review comments (${comments.length})`);
       for (const f of commentByFile) {
         lines.push(`    - ${f.key} (${f.items.length})`);
+
+        const sorted = [...f.items].sort((a, b) => {
+          const posCmp = compareNullableNumber(a.position, b.position);
+          if (posCmp !== 0) return posCmp;
+          const dateCmp = a.createdAt.localeCompare(b.createdAt);
+          if (dateCmp !== 0) return dateCmp;
+          return a.id - b.id;
+        });
+
+        const hasPositioned = sorted.some((c) => c.position != null);
+        const hasUnpositioned = sorted.some((c) => c.position == null);
+
+        const maxPreview = 3;
+        const preview = sorted.slice(0, maxPreview);
+        for (const c of preview) {
+          const who = c.userLogin ?? 'unknown';
+          const body = normalizeOneLine(c.body);
+          const pos = c.position != null ? ` (pos ${c.position})` : hasPositioned && hasUnpositioned ? ' (no position)' : '';
+          const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+          lines.push(`      - ${who}${pos}: ${body}${url}`);
+        }
+
+        const remaining = sorted.length - preview.length;
+        if (remaining > 0) {
+          lines.push(`      - … +${remaining} more`);
+        }
       }
     }
 

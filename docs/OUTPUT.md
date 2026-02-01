@@ -72,10 +72,12 @@ Example:
 ```text
 src/cli.ts (3)
   Review 12345 (2)
-    - #111 alice (pos 10): Please rename this flag.
-    - #112 alice (pos 12): Also add a test.
+    Current diff (1)
+      - #111 alice (pos 10): Please rename this flag.
+    Outdated (1)
+      - #112 alice: Also add a test.
   Other comments (1)
-    - #113 bob: Nit: trailing whitespace.
+    - #113 bob (pos 7): Nit: trailing whitespace.
 ```
 
 ### `pr checks` (grouped)

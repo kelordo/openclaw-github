@@ -95,6 +95,8 @@ describe('text formatters', () => {
 
     expect(out).toContain('Current diff (1)');
     expect(out).toContain('Outdated (1)');
+    expect(out).toContain('#1 alice (pos 10):');
+    expect(out).toContain('#2 bob:');
     expect(out).not.toContain('(no position)');
 
     const out2 = formatCommentsGrouped([
@@ -110,7 +112,8 @@ describe('text formatters', () => {
       },
     ]);
 
-    // When everything is unpositioned, avoid noisy "outdated" grouping.
+    // When there are only unpositioned comments, don't add any extra bucket headers.
+    expect(out2).not.toContain('Current diff');
     expect(out2).not.toContain('Outdated');
   });
 

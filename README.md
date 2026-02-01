@@ -15,6 +15,7 @@ Current milestone: read-only GitHub integration via `GITHUB_TOKEN`.
 
 Implemented commands (WIP; output format will change):
 
+- `pr-autopilot --version`
 - `pr-autopilot pr list --repo owner/name [--state open|closed|all] [--json] [--pretty] [--json-envelope]`
 - `pr-autopilot pr comments --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]`
 - `pr-autopilot pr checks --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]`

@@ -3,6 +3,7 @@ import { createOctokit } from './github/octokit.js';
 import { createGitHubApi } from './github/api.js';
 import { formatJson } from './output.js';
 import { formatCliError } from './errors.js';
+import { readPackageVersion } from './version.js';
 
 type CommandResult = { code: number; stdout?: string; stderr?: string };
 
@@ -12,6 +13,7 @@ function usage(): string {
     '',
     'Usage:',
     '  pr-autopilot ping',
+    '  pr-autopilot --version',
     '  pr-autopilot pr list --repo owner/name [--state open|closed|all] [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr comments --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr checks --repo owner/name --pr <number> [--json] [--pretty] [--json-envelope]',
@@ -42,6 +44,11 @@ export async function main(argv: string[]): Promise<number> {
   const args = argv.slice(2);
   if (args.length === 0 || hasFlag(args, '--help') || hasFlag(args, '-h')) {
     process.stdout.write(usage());
+    return 0;
+  }
+
+  if (hasFlag(args, '--version') || hasFlag(args, '-v')) {
+    process.stdout.write(readPackageVersion() + '\n');
     return 0;
   }
 

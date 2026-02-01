@@ -13,7 +13,7 @@ Deliverables:
 - [x] `pr checks` (check runs)
 - [x] Improve output (JSON flag, stable fields)
 - [ ] Better error messages (missing repo/token, API rate limit)
-- [ ] Paging support for comments/checks
+- [x] Paging support for comments/checks
 
 ## M2 — Branch + commit orchestration
 Goal: help an agent work incrementally.

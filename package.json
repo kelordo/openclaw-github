@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
     "test_watch": "vitest",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier -w .",

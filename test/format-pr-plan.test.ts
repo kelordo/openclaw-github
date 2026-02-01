@@ -141,7 +141,7 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('alice (no position): Outdated');
   });
 
-  it('includes showing counts in action-items diff bucket headers when preview budget truncates a bucket', () => {
+  it('shows diff bucket counts in action-items even when the preview budget truncates a bucket', () => {
     const pull: PullDetails = {
       number: 1,
       title: 'Test PR',
@@ -170,7 +170,7 @@ describe('formatPrPlanText', () => {
     const out = formatPrPlanText({ pull, comments, checks });
 
     expect(out).toContain('Current diff (2)');
-    expect(out).toContain('Outdated (2, showing 1)');
+    expect(out).toContain('Outdated (2)');
   });
 
   it('includes a commenter summary in the Summary section', () => {

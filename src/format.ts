@@ -66,10 +66,13 @@ export function formatCommentsGrouped(comments: ReviewComment[]): string {
         return a.id - b.id;
       });
 
+      const hasPositioned = sorted.some((c) => c.position != null);
+      const hasUnpositioned = sorted.some((c) => c.position == null);
+
       for (const c of sorted) {
         const who = c.userLogin ?? 'unknown';
         const body = normalizeOneLine(c.body);
-        const pos = c.position != null ? ` (pos ${c.position})` : '';
+        const pos = c.position != null ? ` (pos ${c.position})` : hasPositioned && hasUnpositioned ? ' (no position)' : '';
         const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
         const prefix = showReviewHeader ? '    -' : '  -';
         lines.push(`${prefix} #${c.id} ${who}${pos}: ${body}${url}`);

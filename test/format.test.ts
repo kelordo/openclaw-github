@@ -32,6 +32,48 @@ describe('text formatters', () => {
     expect(out).toContain('multi line');
   });
 
+  it('adds an explicit (no position) marker only when positioned and unpositioned comments are mixed', () => {
+    const out = formatCommentsGrouped([
+      {
+        id: 1,
+        pullRequestReviewId: null,
+        userLogin: 'alice',
+        path: 'a.ts',
+        position: 10,
+        body: 'x',
+        createdAt: '2026-01-01T00:00:00Z',
+        htmlUrl: 'u',
+      },
+      {
+        id: 2,
+        pullRequestReviewId: null,
+        userLogin: 'bob',
+        path: 'a.ts',
+        position: null,
+        body: 'y',
+        createdAt: '2026-01-01T00:00:01Z',
+        htmlUrl: 'u',
+      },
+    ]);
+
+    expect(out).toContain('#2 bob (no position):');
+
+    const out2 = formatCommentsGrouped([
+      {
+        id: 3,
+        pullRequestReviewId: null,
+        userLogin: 'bob',
+        path: 'a.ts',
+        position: null,
+        body: 'y',
+        createdAt: '2026-01-01T00:00:01Z',
+        htmlUrl: 'u',
+      },
+    ]);
+
+    expect(out2).not.toContain('(no position)');
+  });
+
   it('groups comments by review id within a file when multiple exist', () => {
     const out = formatCommentsGrouped([
       {

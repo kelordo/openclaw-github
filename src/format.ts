@@ -57,6 +57,8 @@ export function formatCommentsGrouped(comments: ReviewComment[]): string {
 
 type CheckBucket = 'failed' | 'pending' | 'success' | 'neutral' | 'unknown';
 
+type CheckBucketCounts = Record<CheckBucket, number>;
+
 function bucketCheck(r: CheckRunSummary): CheckBucket {
   const status = r.status;
   const conclusion = r.conclusion;
@@ -69,6 +71,12 @@ function bucketCheck(r: CheckRunSummary): CheckBucket {
 }
 
 const BUCKET_ORDER: CheckBucket[] = ['failed', 'pending', 'unknown', 'neutral', 'success'];
+
+function countCheckBuckets(runs: CheckRunSummary[]): CheckBucketCounts {
+  const counts: CheckBucketCounts = { failed: 0, pending: 0, success: 0, neutral: 0, unknown: 0 };
+  for (const r of runs) counts[bucketCheck(r)]++;
+  return counts;
+}
 
 export function formatChecksGrouped(runs: CheckRunSummary[]): string {
   if (runs.length === 0) return '';
@@ -99,6 +107,16 @@ export function formatChecksGrouped(runs: CheckRunSummary[]): string {
   return lines.join('\n').trimEnd() + '\n';
 }
 
+function formatCheckSummary(counts: CheckBucketCounts): string {
+  const parts: string[] = [];
+  for (const b of BUCKET_ORDER) {
+    const n = counts[b];
+    if (n <= 0) continue;
+    parts.push(`${b}=${n}`);
+  }
+  return parts.join(' ');
+}
+
 export function formatPrPlanText(input: {
   pull: PullDetails;
   comments: ReviewComment[];
@@ -106,10 +124,18 @@ export function formatPrPlanText(input: {
 }): string {
   const { pull, comments, checks } = input;
 
+  const commentFileCount = new Set(comments.map((c) => c.path)).size;
+  const checkCounts = countCheckBuckets(checks);
+
   const lines: string[] = [];
   lines.push(`PR #${pull.number}: ${pull.title}`);
   lines.push(`${pull.htmlUrl}`);
   lines.push(`State: ${pull.state}${pull.draft ? ' (draft)' : ''}`);
+  lines.push('');
+
+  lines.push('Summary');
+  lines.push(`  - Comments: ${comments.length} across ${commentFileCount} file${commentFileCount === 1 ? '' : 's'}`);
+  lines.push(`  - Checks: ${checks.length}${checks.length ? ` (${formatCheckSummary(checkCounts)})` : ''}`);
   lines.push('');
 
   lines.push(`Review comments (${comments.length})`);

@@ -57,7 +57,36 @@ describe('text formatters', () => {
     });
 
     expect(out).toContain('PR #1: T');
+    expect(out).toContain('Summary');
+    expect(out).toContain('Comments: 0 across 0 files');
+    expect(out).toContain('Checks: 0');
     expect(out).toContain('Review comments (0)');
     expect(out).toContain('Checks (0)');
+  });
+
+  it('includes bucket counts in the plan summary when checks exist', () => {
+    const out = formatPrPlanText({
+      pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },
+      comments: [{
+        id: 1,
+        pullRequestReviewId: null,
+        userLogin: 'alice',
+        path: 'a.ts',
+        position: 1,
+        body: 'x',
+        createdAt: 'x',
+        htmlUrl: 'u',
+      }],
+      checks: [
+        { id: 1, name: 'lint', status: 'completed', conclusion: 'success', detailsUrl: null },
+        { id: 2, name: 'test', status: 'completed', conclusion: 'failure', detailsUrl: 'd' },
+        { id: 3, name: 'build', status: 'in_progress', conclusion: null, detailsUrl: null },
+      ],
+    });
+
+    expect(out).toContain('Checks: 3');
+    expect(out).toContain('failed=1');
+    expect(out).toContain('pending=1');
+    expect(out).toContain('success=1');
   });
 });

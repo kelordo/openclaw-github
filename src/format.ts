@@ -112,16 +112,32 @@ export function formatCommentsGrouped(comments: ReviewComment[]): string {
         return a.id - b.id;
       });
 
-      const hasPositioned = sorted.some((c) => c.position != null);
-      const hasUnpositioned = sorted.some((c) => c.position == null);
+      const positioned = sorted.filter((c) => c.position != null);
+      const unpositioned = sorted.filter((c) => c.position == null);
+      const showDiffBuckets = positioned.length > 0 && unpositioned.length > 0;
 
-      for (const c of sorted) {
-        const who = c.userLogin ?? 'unknown';
-        const body = normalizeOneLine(c.body);
-        const pos = c.position != null ? ` (pos ${c.position})` : hasPositioned && hasUnpositioned ? ' (no position)' : '';
-        const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+      function emitCommentLines(items: ReviewComment[], prefix: string) {
+        for (const c of items) {
+          const who = c.userLogin ?? 'unknown';
+          const body = normalizeOneLine(c.body);
+          const pos = c.position != null ? ` (pos ${c.position})` : '';
+          const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+          lines.push(`${prefix} #${c.id} ${who}${pos}: ${body}${url}`);
+        }
+      }
+
+      if (showDiffBuckets) {
+        const sectionIndent = showReviewHeader ? '    ' : '  ';
+        const itemPrefix = showReviewHeader ? '      -' : '    -';
+
+        lines.push(`${sectionIndent}Current diff (${positioned.length})`);
+        emitCommentLines(positioned, itemPrefix);
+
+        lines.push(`${sectionIndent}Outdated (${unpositioned.length})`);
+        emitCommentLines(unpositioned, itemPrefix);
+      } else {
         const prefix = showReviewHeader ? '    -' : '  -';
-        lines.push(`${prefix} #${c.id} ${who}${pos}: ${body}${url}`);
+        emitCommentLines(sorted, prefix);
       }
     }
 

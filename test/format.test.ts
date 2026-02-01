@@ -69,7 +69,7 @@ describe('text formatters', () => {
     expect(out).toContain('multi line');
   });
 
-  it('adds an explicit (no position) marker only when positioned and unpositioned comments are mixed', () => {
+  it('groups positioned vs unpositioned comments (current diff vs outdated) when mixed', () => {
     const out = formatCommentsGrouped([
       {
         id: 1,
@@ -93,7 +93,9 @@ describe('text formatters', () => {
       },
     ]);
 
-    expect(out).toContain('#2 bob (no position):');
+    expect(out).toContain('Current diff (1)');
+    expect(out).toContain('Outdated (1)');
+    expect(out).not.toContain('(no position)');
 
     const out2 = formatCommentsGrouped([
       {
@@ -108,7 +110,8 @@ describe('text formatters', () => {
       },
     ]);
 
-    expect(out2).not.toContain('(no position)');
+    // When everything is unpositioned, avoid noisy "outdated" grouping.
+    expect(out2).not.toContain('Outdated');
   });
 
   it('groups comments by review id within a file when multiple exist', () => {

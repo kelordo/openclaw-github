@@ -26,6 +26,10 @@ Implemented commands (WIP; output format will change):
 ## Security
 Never commit tokens. Use env vars or a local `.env`.
 
+## Output
+
+See [docs/OUTPUT.md](docs/OUTPUT.md) for the current text and JSON output conventions.
+
 ## Dev
 
 ```bash

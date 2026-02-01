@@ -104,6 +104,7 @@ State: open
 
 Summary
   - Comments: 3 across 2 files
+  - Commenters: alice=2, bob=1
   - Checks: 2 (failed=1 success=1)
 
 Action items
@@ -117,7 +118,8 @@ Action items
         - alice (pos 10): Please add a test. https://...
         - … +1 more
     - src/format.ts (1)
-      - bob (pos 7): Can you group these by review? https://...
+      Review 99999 (1)
+        - bob (pos 7): Can you group these by review? https://...
 
 Review comments (3)
   ...

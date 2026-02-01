@@ -207,6 +207,19 @@ describe('text formatters', () => {
     expect(out).toContain('- build:');
   });
 
+  it('sorts checks within a suite by the label (after splitting "suite / label")', () => {
+    const out = formatChecksGrouped([
+      { id: 1, name: 'CI / zed', status: 'completed', conclusion: 'failure', detailsUrl: null },
+      { id: 2, name: 'CI / alpha', status: 'completed', conclusion: 'failure', detailsUrl: null },
+    ]);
+
+    const alphaIdx = out.indexOf('alpha:');
+    const zedIdx = out.indexOf('zed:');
+    expect(alphaIdx).toBeGreaterThanOrEqual(0);
+    expect(zedIdx).toBeGreaterThanOrEqual(0);
+    expect(alphaIdx).toBeLessThan(zedIdx);
+  });
+
   it('formats a plan summary', () => {
     const out = formatPrPlanText({
       pull: { number: 1, title: 'T', state: 'open', draft: false, htmlUrl: 'u', headSha: 's' },

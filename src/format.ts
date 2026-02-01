@@ -187,7 +187,12 @@ export function formatChecksGrouped(runs: CheckRunSummary[]): string {
       const showHeader = !(groups.length === 1 && g.key === 'checks');
       if (showHeader) lines.push(`  ${g.key} (${g.items.length})`);
 
-      const sorted = [...g.items].sort((a, c) => a.name.localeCompare(c.name));
+      const sorted = [...g.items].sort((a, c) => {
+        const la = splitCheckName(a.name).label;
+        const lb = splitCheckName(c.name).label;
+        const cmp = la.localeCompare(lb);
+        return cmp !== 0 ? cmp : a.name.localeCompare(c.name);
+      });
       for (const r of sorted) {
         const { label } = splitCheckName(r.name);
         const concl = r.conclusion ?? '-';
@@ -248,7 +253,12 @@ export function formatPrPlanText(input: {
       for (const g of grouped) {
         const showHeader = !(grouped.length === 1 && g.key === 'checks');
         if (showHeader) lines.push(`    ${g.key} (${g.items.length})`);
-        const sorted = [...g.items].sort((a, b) => a.name.localeCompare(b.name));
+        const sorted = [...g.items].sort((a, b) => {
+          const la = splitCheckName(a.name).label;
+          const lb = splitCheckName(b.name).label;
+          const cmp = la.localeCompare(lb);
+          return cmp !== 0 ? cmp : a.name.localeCompare(b.name);
+        });
         for (const r of sorted) {
           const { label } = splitCheckName(r.name);
           const url = r.detailsUrl ?? '';
@@ -265,7 +275,12 @@ export function formatPrPlanText(input: {
       for (const g of grouped) {
         const showHeader = !(grouped.length === 1 && g.key === 'checks');
         if (showHeader) lines.push(`    ${g.key} (${g.items.length})`);
-        const sorted = [...g.items].sort((a, b) => a.name.localeCompare(b.name));
+        const sorted = [...g.items].sort((a, b) => {
+          const la = splitCheckName(a.name).label;
+          const lb = splitCheckName(b.name).label;
+          const cmp = la.localeCompare(lb);
+          return cmp !== 0 ? cmp : a.name.localeCompare(b.name);
+        });
         for (const r of sorted) {
           const { label } = splitCheckName(r.name);
           const url = r.detailsUrl ?? '';

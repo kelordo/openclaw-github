@@ -184,6 +184,13 @@ export function formatChecksGrouped(runs: CheckRunSummary[]): string {
   }
 
   const lines: string[] = [];
+
+  const summary = formatCheckSummary(countCheckBuckets(runs));
+  if (summary) {
+    lines.push(`Summary: ${summary}`);
+    lines.push('');
+  }
+
   for (const b of BUCKET_ORDER) {
     const items = buckets.get(b);
     if (!items || items.length === 0) continue;

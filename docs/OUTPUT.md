@@ -85,6 +85,8 @@ Within a bucket, checks are grouped by suite prefix when the check name contains
 Example:
 
 ```text
+Summary: failed=1 success=2
+
 failed (1)
   CI (1)
     - test (ubuntu-latest): completed/failure https://...

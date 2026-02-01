@@ -173,6 +173,8 @@ describe('text formatters', () => {
       { id: 3, name: 'build', status: 'in_progress', conclusion: null, detailsUrl: null },
     ]);
 
+    expect(out).toContain('Summary: failed=1 pending=1 success=1');
+
     const failedIdx = out.indexOf('failed');
     const pendingIdx = out.indexOf('pending');
     const successIdx = out.indexOf('success');
@@ -394,6 +396,7 @@ describe('text formatters', () => {
     });
 
     expect(out).toContain('Review comments (all) (1)\n  a.ts (1)');
-    expect(out).toContain('Checks (all) (1)\n  failed (1)');
+    expect(out).toContain('Checks (all) (1)\n  Summary: failed=1');
+    expect(out).toContain('\n  failed (1)');
   });
 });

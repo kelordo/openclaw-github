@@ -9,7 +9,15 @@ A small CLI that helps an agent (and a human) run a tight GitHub workflow:
 - track CI status
 
 ## Status
-Early scaffold. First milestone: read-only GitHub integration (list PRs, fetch review threads, fetch check runs) via `GITHUB_TOKEN`.
+Early scaffold.
+
+Current milestone: read-only GitHub integration via `GITHUB_TOKEN`.
+
+Implemented commands (WIP; output format will change):
+
+- `pr-autopilot pr list --repo owner/name [--state open|closed|all] [--json] [--pretty]`
+- `pr-autopilot pr comments --repo owner/name --pr <number> [--json] [--pretty]`
+- `pr-autopilot pr checks --repo owner/name --pr <number> [--json] [--pretty]`
 
 ## Security
 Never commit tokens. Use env vars or a local `.env`.

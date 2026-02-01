@@ -32,6 +32,34 @@ describe('text formatters', () => {
     expect(out).toContain('multi line');
   });
 
+  it('groups comments by review id within a file when multiple exist', () => {
+    const out = formatCommentsGrouped([
+      {
+        id: 1,
+        pullRequestReviewId: 10,
+        userLogin: 'alice',
+        path: 'a.ts',
+        position: 1,
+        body: 'x',
+        createdAt: '2026-01-01T00:00:00Z',
+        htmlUrl: 'u',
+      },
+      {
+        id: 2,
+        pullRequestReviewId: 11,
+        userLogin: 'bob',
+        path: 'a.ts',
+        position: 2,
+        body: 'y',
+        createdAt: '2026-01-01T00:00:01Z',
+        htmlUrl: 'u',
+      },
+    ]);
+
+    expect(out).toContain('Review 10');
+    expect(out).toContain('Review 11');
+  });
+
   it('buckets checks with failures first', () => {
     const out = formatChecksGrouped([
       { id: 1, name: 'lint', status: 'completed', conclusion: 'success', detailsUrl: null },

@@ -33,22 +33,42 @@ export function formatCommentsGrouped(comments: ReviewComment[]): string {
   for (const g of groups) {
     lines.push(`${g.key} (${g.items.length})`);
 
-    const sorted = [...g.items].sort((a, b) => {
-      const posCmp = compareNullableNumber(a.position, b.position);
-      if (posCmp !== 0) return posCmp;
-      // createdAt is ISO from GitHub; lexical sort works, but keep safe.
-      const dateCmp = a.createdAt.localeCompare(b.createdAt);
-      if (dateCmp !== 0) return dateCmp;
-      return a.id - b.id;
-    });
+    // Within each file, group by the review id (thread) when present.
+    // This keeps multi-comment review threads clustered together.
+    const byReview = groupByKey(g.items, (c) => (c.pullRequestReviewId == null ? 'no-review' : String(c.pullRequestReviewId))).sort(
+      (a, b) => {
+        if (a.key === 'no-review' && b.key !== 'no-review') return 1;
+        if (b.key === 'no-review' && a.key !== 'no-review') return -1;
+        return a.key.localeCompare(b.key);
+      },
+    );
 
-    for (const c of sorted) {
-      const who = c.userLogin ?? 'unknown';
-      const body = normalizeOneLine(c.body);
-      const pos = c.position != null ? ` (pos ${c.position})` : '';
-      const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
-      lines.push(`  - #${c.id} ${who}${pos}: ${body}${url}`);
+    const showReviewHeader = byReview.length > 1;
+
+    for (const reviewGroup of byReview) {
+      const header =
+        reviewGroup.key === 'no-review' ? 'Other comments' : `Review ${reviewGroup.key}`;
+      if (showReviewHeader) lines.push(`  ${header} (${reviewGroup.items.length})`);
+
+      const sorted = [...reviewGroup.items].sort((a, b) => {
+        const posCmp = compareNullableNumber(a.position, b.position);
+        if (posCmp !== 0) return posCmp;
+        // createdAt is ISO from GitHub; lexical sort works, but keep safe.
+        const dateCmp = a.createdAt.localeCompare(b.createdAt);
+        if (dateCmp !== 0) return dateCmp;
+        return a.id - b.id;
+      });
+
+      for (const c of sorted) {
+        const who = c.userLogin ?? 'unknown';
+        const body = normalizeOneLine(c.body);
+        const pos = c.position != null ? ` (pos ${c.position})` : '';
+        const url = c.htmlUrl ? ` ${c.htmlUrl}` : '';
+        const prefix = showReviewHeader ? '    -' : '  -';
+        lines.push(`${prefix} #${c.id} ${who}${pos}: ${body}${url}`);
+      }
     }
+
     lines.push('');
   }
 

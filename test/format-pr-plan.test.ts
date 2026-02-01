@@ -141,6 +141,38 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('alice (no position): Outdated');
   });
 
+  it('includes showing counts in action-items diff bucket headers when preview budget truncates a bucket', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const make = (id: number, position: number | null, body: string): ReviewComment => ({
+      id,
+      pullRequestReviewId: 10,
+      userLogin: 'alice',
+      path: 'a.ts',
+      position,
+      body,
+      createdAt: `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`,
+      htmlUrl: `u${id}`,
+    });
+
+    // Preview budget is 3 per file; make 2 positioned + 2 unpositioned so we truncate Outdated.
+    const comments: ReviewComment[] = [make(1, 1, 'c1'), make(2, 2, 'c2'), make(3, null, 'o1'), make(4, null, 'o2')];
+    const checks: CheckRunSummary[] = [];
+
+    const out = formatPrPlanText({ pull, comments, checks });
+
+    expect(out).toContain('Current diff (2)');
+    expect(out).toContain('Outdated (2, showing 1)');
+  });
+
   it('includes a commenter summary in the Summary section', () => {
     const pull: PullDetails = {
       number: 1,

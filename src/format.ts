@@ -432,7 +432,11 @@ export function formatPrPlanText(
             if (shown >= maxPreview) return;
             if (emitted >= allocation) return;
 
-            lines.push(`${bucketIndent}${label} (${items.length})`);
+            const remainingBudget = Math.min(maxPreview - shown, allocation - emitted);
+            const willShow = Math.min(items.length, remainingBudget);
+            const header = willShow < items.length ? `${label} (${items.length}, showing ${willShow})` : `${label} (${items.length})`;
+
+            lines.push(`${bucketIndent}${header}`);
 
             for (const c of items) {
               if (shown >= maxPreview) break;

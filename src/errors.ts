@@ -1,4 +1,5 @@
 import type { RequestError } from '@octokit/request-error';
+import { ZodError } from 'zod';
 
 export type CliError = {
   message: string;
@@ -25,6 +26,17 @@ function getHeader(err: RequestError, header: string): string | undefined {
 export function formatCliError(err: unknown): CliError {
   if (err instanceof Error && err.message.includes('GITHUB_TOKEN is required')) {
     return { message: err.message, code: 2 };
+  }
+
+  if (err instanceof ZodError) {
+    const details = err.issues
+      .map((i) => {
+        const path = i.path.length ? `${i.path.join('.')}: ` : '';
+        return `${path}${i.message}`;
+      })
+      .join('; ');
+
+    return { message: details.length ? details : 'Invalid input.', code: 2 };
   }
 
   if (isOctokitRequestError(err)) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatCliError } from '../src/errors.js';
+import { parseRepoSlug } from '../src/config.js';
 
 // Lightweight shape-compatible fake of @octokit/request-error
 function makeRequestError(params: {
@@ -66,5 +67,16 @@ describe('formatCliError', () => {
   it('formats 404 errors', () => {
     const err = makeRequestError({ status: 404, message: 'Not Found' });
     expect(formatCliError(err).message).toMatch(/not found/i);
+  });
+
+  it('formats zod input errors (e.g., invalid repo slug)', () => {
+    try {
+      parseRepoSlug('not-a-slug');
+      throw new Error('expected parseRepoSlug to throw');
+    } catch (err: unknown) {
+      const out = formatCliError(err);
+      expect(out.code).toBe(2);
+      expect(out.message).toMatch(/owner\/name/i);
+    }
   });
 });

@@ -243,6 +243,22 @@ export function formatPrPlanText(input: {
 
   lines.push('Summary');
   lines.push(`  - Comments: ${comments.length} across ${commentFileCount} file${commentFileCount === 1 ? '' : 's'}`);
+
+  if (comments.length) {
+    const byAuthor = groupByKey(comments, (c) => c.userLogin ?? 'unknown').sort(
+      (a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key),
+    );
+
+    const topN = 3;
+    const shown = byAuthor.slice(0, topN);
+    const hidden = byAuthor.length - shown.length;
+
+    const parts = shown.map((g) => `${g.key}=${g.items.length}`);
+    if (hidden > 0) parts.push(`… +${hidden} more`);
+
+    lines.push(`  - Commenters: ${parts.join(', ')}`);
+  }
+
   lines.push(`  - Checks: ${checks.length}${checks.length ? ` (${formatCheckSummary(checkCounts)})` : ''}`);
   lines.push('');
 

@@ -52,6 +52,58 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('… +1 more');
   });
 
+  it('includes a commenter summary in the Summary section', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const comments: ReviewComment[] = [
+      {
+        id: 1,
+        pullRequestReviewId: 10,
+        userLogin: 'alice',
+        path: 'a.ts',
+        position: 1,
+        body: 'x',
+        createdAt: '2026-01-01T00:00:00Z',
+        htmlUrl: 'u',
+      },
+      {
+        id: 2,
+        pullRequestReviewId: 11,
+        userLogin: 'alice',
+        path: 'b.ts',
+        position: 2,
+        body: 'y',
+        createdAt: '2026-01-01T00:00:01Z',
+        htmlUrl: 'u',
+      },
+      {
+        id: 3,
+        pullRequestReviewId: 12,
+        userLogin: 'bob',
+        path: 'c.ts',
+        position: 3,
+        body: 'z',
+        createdAt: '2026-01-01T00:00:02Z',
+        htmlUrl: 'u',
+      },
+    ];
+
+    const checks: CheckRunSummary[] = [];
+
+    const out = formatPrPlanText({ pull, comments, checks });
+
+    expect(out).toContain('Summary');
+    expect(out).toContain('Commenters: alice=2, bob=1');
+  });
+
   it('includes status/conclusion in action-items check lines', () => {
     const pull: PullDetails = {
       number: 1,

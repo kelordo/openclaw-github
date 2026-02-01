@@ -2,7 +2,7 @@ import { readEnv, parseRepoSlug } from './config.js';
 import { createOctokit } from './github/octokit.js';
 import { createGitHubApi } from './github/api.js';
 import { formatJson } from './output.js';
-import { formatChecksGrouped, formatCommentsGrouped, formatPrPlanText } from './format.js';
+import { formatChecksGrouped, formatCommentsGrouped, formatPrPlanText, formatPullsGrouped } from './format.js';
 import { formatCliError } from './errors.js';
 import { readPackageVersion } from './version.js';
 
@@ -90,10 +90,7 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
       return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
     }
 
-    const out = prs
-      .map((pr) => `${pr.number}\t${pr.state}${pr.draft ? ' (draft)' : ''}\t${pr.title}\t${pr.htmlUrl}`)
-      .join('\n');
-    return { code: 0, stdout: out + (out ? '\n' : '') };
+    return { code: 0, stdout: formatPullsGrouped(prs) };
   }
 
   if (top === 'pr' && sub === 'comments') {

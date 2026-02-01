@@ -1,4 +1,4 @@
-import type { CheckRunSummary, PullDetails, ReviewComment } from './github/api.js';
+import type { CheckRunSummary, PullDetails, PullRequestSummary, ReviewComment } from './github/api.js';
 
 export function normalizeOneLine(s: string): string {
   return s.replaceAll(/\s+/g, ' ').trim();
@@ -29,6 +29,53 @@ function compareNullableNumber(a: number | null, b: number | null): number {
   if (a == null) return 1;
   if (b == null) return -1;
   return a - b;
+}
+
+export function formatPullsGrouped(prs: PullRequestSummary[]): string {
+  if (prs.length === 0) return '';
+
+  // Bucket by state, then show drafts separately within open PRs.
+  // Keep ordering stable and human-friendly.
+  const byState = groupByKey(prs, (pr) => pr.state).sort((a, b) => {
+    if (a.key === 'open' && b.key !== 'open') return -1;
+    if (b.key === 'open' && a.key !== 'open') return 1;
+    return a.key.localeCompare(b.key);
+  });
+
+  const lines: string[] = [];
+
+  for (const stateGroup of byState) {
+    const state = stateGroup.key as 'open' | 'closed';
+
+    const items = [...stateGroup.items].sort((a, b) => b.number - a.number);
+
+    if (state === 'open') {
+      const draft = items.filter((p) => p.draft);
+      const ready = items.filter((p) => !p.draft);
+
+      if (ready.length) {
+        lines.push(`open (${ready.length})`);
+        for (const pr of ready) lines.push(`  - #${pr.number} ${normalizeOneLine(pr.title)} ${pr.htmlUrl}`);
+        lines.push('');
+      }
+
+      if (draft.length) {
+        lines.push(`draft (${draft.length})`);
+        for (const pr of draft) lines.push(`  - #${pr.number} ${normalizeOneLine(pr.title)} ${pr.htmlUrl}`);
+        lines.push('');
+      }
+
+      continue;
+    }
+
+    lines.push(`${state} (${items.length})`);
+    for (const pr of items) {
+      lines.push(`  - #${pr.number} ${normalizeOneLine(pr.title)} ${pr.htmlUrl}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n').trimEnd() + '\n';
 }
 
 export function formatCommentsGrouped(comments: ReviewComment[]): string {

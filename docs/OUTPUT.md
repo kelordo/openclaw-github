@@ -11,6 +11,24 @@ If you want a stable wrapper for downstream tooling, add `--json-envelope` which
 
 ## Grouped text output
 
+### `pr list` (grouped)
+PRs are bucketed into: `open`, `draft` (open drafts), and `closed`.
+Within each bucket, PRs are sorted by PR number descending.
+
+Example:
+
+```text
+open (2)
+  - #15 Fix flaky tests https://...
+  - #12 Add pr plan command https://...
+
+draft (1)
+  - #16 WIP: refactor formatter https://...
+
+closed (1)
+  - #10 Release v0.1.0 https://...
+```
+
 ### `pr comments` (grouped)
 Comments are grouped by file path, then by `pullRequestReviewId` (review thread) when present.
 Within a file/review, comments are sorted by position (when available), then time.

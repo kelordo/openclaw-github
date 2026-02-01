@@ -171,6 +171,43 @@ describe('cli pr plan', () => {
     }
   });
 
+  it('prints only attention section when --only-attention is set', async () => {
+    process.env.GITHUB_TOKEN = 'test-token';
+
+    const writes: string[] = [];
+    const origWrite = process.stdout.write;
+    process.stdout.write = (chunk: unknown) => {
+      writes.push(String(chunk));
+      return true;
+    };
+
+    try {
+      const code = await main([
+        'node',
+        'pr-autopilot',
+        'pr',
+        'plan',
+        '--repo',
+        'o/r',
+        '--pr',
+        '1',
+        '--only-attention',
+      ]);
+      expect(code).toBe(0);
+
+      const out = writes.join('');
+      expect(out).toContain('PR #1:');
+      expect(out).toContain('Summary');
+      expect(out).toContain('Action items');
+      expect(out).toContain('Checks needing attention');
+      // Should not include the full, verbose grouped sections.
+      expect(out).not.toContain('Review comments (all)');
+      expect(out).not.toContain('Checks (all)');
+    } finally {
+      process.stdout.write = origWrite;
+    }
+  });
+
   it('accepts --pr-url as an alternative to --repo/--pr', async () => {
     process.env.GITHUB_TOKEN = 'test-token';
 

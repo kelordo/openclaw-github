@@ -62,8 +62,13 @@ success (2)
 ```
 
 ### `pr plan`
-`pr plan` prints a short PR header, a summary (counts), followed by grouped comments and checks.
+`pr plan` prints a short PR header and a summary (counts).
 
-The grouped comment/check blocks are indented under their section headers to keep the overall output readable.
+If there are any checks/comments, it also prints an `Action items` section that surfaces:
+- failing checks (grouped by suite prefix when present)
+- pending checks (grouped)
+- comment counts by file (most-commented files first)
+
+Then it prints the full grouped comment and check blocks, indented under their section headers to keep the overall output readable.
 
 Use `--json` if you want to feed an agent or script.

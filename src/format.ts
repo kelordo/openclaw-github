@@ -241,6 +241,56 @@ export function formatPrPlanText(input: {
   lines.push(`  - Checks: ${checks.length}${checks.length ? ` (${formatCheckSummary(checkCounts)})` : ''}`);
   lines.push('');
 
+  // Action-oriented grouping: surface what likely needs attention first.
+  const failedChecks = checks.filter((c) => bucketCheck(c) === 'failed');
+  const pendingChecks = checks.filter((c) => bucketCheck(c) === 'pending');
+  const commentByFile = groupByKey(comments, (c) => c.path).sort((a, b) => b.items.length - a.items.length || a.key.localeCompare(b.key));
+
+  if (failedChecks.length || pendingChecks.length || comments.length) {
+    lines.push('Action items');
+
+    if (failedChecks.length) {
+      lines.push(`  - Failing checks (${failedChecks.length})`);
+      const grouped = groupByKey(failedChecks, (r) => splitCheckName(r.name).group).sort((a, b) => a.key.localeCompare(b.key));
+      for (const g of grouped) {
+        const showHeader = !(grouped.length === 1 && g.key === 'checks');
+        if (showHeader) lines.push(`    ${g.key} (${g.items.length})`);
+        const sorted = [...g.items].sort((a, b) => a.name.localeCompare(b.name));
+        for (const r of sorted) {
+          const { label } = splitCheckName(r.name);
+          const url = r.detailsUrl ?? '';
+          const prefix = showHeader ? '      -' : '    -';
+          lines.push(`${prefix} ${label}${url ? ` ${url}` : ''}`);
+        }
+      }
+    }
+
+    if (pendingChecks.length) {
+      lines.push(`  - Pending checks (${pendingChecks.length})`);
+      const grouped = groupByKey(pendingChecks, (r) => splitCheckName(r.name).group).sort((a, b) => a.key.localeCompare(b.key));
+      for (const g of grouped) {
+        const showHeader = !(grouped.length === 1 && g.key === 'checks');
+        if (showHeader) lines.push(`    ${g.key} (${g.items.length})`);
+        const sorted = [...g.items].sort((a, b) => a.name.localeCompare(b.name));
+        for (const r of sorted) {
+          const { label } = splitCheckName(r.name);
+          const url = r.detailsUrl ?? '';
+          const prefix = showHeader ? '      -' : '    -';
+          lines.push(`${prefix} ${label}${url ? ` ${url}` : ''}`);
+        }
+      }
+    }
+
+    if (comments.length) {
+      lines.push(`  - Review comments (${comments.length})`);
+      for (const f of commentByFile) {
+        lines.push(`    - ${f.key} (${f.items.length})`);
+      }
+    }
+
+    lines.push('');
+  }
+
   lines.push(`Review comments (${comments.length})`);
   if (comments.length === 0) lines.push('  (none)');
   else lines.push(indentBlock(formatCommentsGrouped(comments).trimEnd()));

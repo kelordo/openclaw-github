@@ -52,8 +52,15 @@ export function formatCliError(err: unknown): CliError {
         };
       }
 
+      const tokenScopes = getHeader(err, 'x-oauth-scopes');
+      const acceptedScopes = getHeader(err, 'x-accepted-oauth-scopes');
+      const scopeHintParts: string[] = [];
+      if (tokenScopes) scopeHintParts.push(`token scopes: ${tokenScopes}`);
+      if (acceptedScopes) scopeHintParts.push(`required scopes: ${acceptedScopes}`);
+      const scopeHint = scopeHintParts.length ? ` (${scopeHintParts.join('; ')})` : '';
+
       return {
-        message: `GitHub API denied the request (403). Your token may be missing permissions.${suffix}`,
+        message: `GitHub API denied the request (403). Your token may be missing permissions.${scopeHint}${suffix}`,
         code: 2,
       };
     }

@@ -46,6 +46,23 @@ describe('formatCliError', () => {
     expect(out.message).toMatch(/2023-11-14T22:13:20\.000Z/);
   });
 
+  it('formats 403 forbidden errors and can include scope hints', () => {
+    const err = makeRequestError({
+      status: 403,
+      message: 'Resource not accessible by integration',
+      headers: {
+        'x-oauth-scopes': 'repo, read:org',
+        'x-accepted-oauth-scopes': 'repo',
+      },
+    });
+
+    const out = formatCliError(err);
+    expect(out.code).toBe(2);
+    expect(out.message).toMatch(/denied/i);
+    expect(out.message).toMatch(/token scopes:/i);
+    expect(out.message).toMatch(/required scopes:/i);
+  });
+
   it('formats 404 errors', () => {
     const err = makeRequestError({ status: 404, message: 'Not Found' });
     expect(formatCliError(err).message).toMatch(/not found/i);

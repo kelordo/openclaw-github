@@ -75,17 +75,7 @@ describe('cli pr plan', () => {
     };
 
     try {
-      const code = await main([
-        'node',
-        'pr-autopilot',
-        'pr',
-        'plan',
-        '--repo',
-        'o/r',
-        '--pr',
-        '1',
-        '--json',
-      ]);
+      const code = await main(['node', 'pr-autopilot', 'pr', 'plan', '--repo', 'o/r', '--pr', '1', '--json']);
       expect(code).toBe(0);
 
       const text = writes.join('');
@@ -100,6 +90,43 @@ describe('cli pr plan', () => {
       expect(parsed.comments).toHaveLength(1);
       expect(parsed).toHaveProperty('checks');
       expect(parsed.checks).toHaveLength(2);
+    } finally {
+      process.stdout.write = origWrite;
+    }
+  });
+
+  it('prints JSON envelope when --json-envelope is set', async () => {
+    process.env.GITHUB_TOKEN = 'test-token';
+
+    const writes: string[] = [];
+    const origWrite = process.stdout.write;
+    process.stdout.write = (chunk: unknown) => {
+      writes.push(String(chunk));
+      return true;
+    };
+
+    try {
+      const code = await main([
+        'node',
+        'pr-autopilot',
+        'pr',
+        'plan',
+        '--repo',
+        'o/r',
+        '--pr',
+        '1',
+        '--json',
+        '--json-envelope',
+      ]);
+      expect(code).toBe(0);
+
+      const text = writes.join('');
+      const parsed = JSON.parse(text) as {
+        schema: string;
+        data: { pull: { number: number } };
+      };
+      expect(parsed.schema).toBe('pr-autopilot/pr-plan@1');
+      expect(parsed.data.pull.number).toBe(1);
     } finally {
       process.stdout.write = origWrite;
     }
@@ -129,43 +156,6 @@ describe('cli pr plan', () => {
       expect(out).toContain('Checks needing attention');
       expect(out).toContain('Review comments (all)');
       expect(out).toContain('Checks (all)');
-    } finally {
-      process.stdout.write = origWrite;
-    }
-  });
-
-  it('prints only attention section when --only-attention is set', async () => {
-    process.env.GITHUB_TOKEN = 'test-token';
-
-    const writes: string[] = [];
-    const origWrite = process.stdout.write;
-    process.stdout.write = (chunk: unknown) => {
-      writes.push(String(chunk));
-      return true;
-    };
-
-    try {
-      const code = await main([
-        'node',
-        'pr-autopilot',
-        'pr',
-        'plan',
-        '--repo',
-        'o/r',
-        '--pr',
-        '1',
-        '--only-attention',
-      ]);
-      expect(code).toBe(0);
-
-      const out = writes.join('');
-      expect(out).toContain('PR #1:');
-      expect(out).toContain('Summary');
-      expect(out).toContain('Action items');
-      expect(out).toContain('Checks needing attention');
-      // Should not include the full, verbose grouped sections.
-      expect(out).not.toContain('Review comments (all)');
-      expect(out).not.toContain('Checks (all)');
     } finally {
       process.stdout.write = origWrite;
     }

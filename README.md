@@ -47,6 +47,7 @@ Optional (nice-to-have):
 
 Convenience:
 - `npm run search -- <pattern> [path]` uses `rg` if available, otherwise falls back to `grep`.
+  - Note: like `rg`/`grep`, it exits with status `1` when there are **no matches**.
 
 ## Dev
 

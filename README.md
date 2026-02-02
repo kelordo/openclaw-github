@@ -20,6 +20,7 @@ Implemented commands (WIP; output format will change):
 - `pr-autopilot pr comments (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]`
 - `pr-autopilot pr checks (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]`
 - `pr-autopilot pr plan (--repo owner/name --pr <number> | --pr-url <url>) [--only-attention] [--json] [--pretty] [--json-envelope]`
+- `pr-autopilot git status [--cwd <path>] [--json] [--pretty] [--json-envelope]`
 
 `--json-envelope` wraps output as `{ schema, data }` so downstream scripts can lock onto a stable schema version.
 

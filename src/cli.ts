@@ -3,6 +3,7 @@ import { createOctokit } from './github/octokit.js';
 import { createGitHubApi } from './github/api.js';
 import { formatJson } from './output.js';
 import { formatChecksGrouped, formatCommentsGrouped, formatPrPlanText, formatPullsGrouped } from './format.js';
+import { getCurrentBranch, getStatusPorcelain } from './git/git.js';
 import { formatCliError } from './errors.js';
 import { readPackageVersion } from './version.js';
 
@@ -19,6 +20,7 @@ function usage(): string {
     '  pr-autopilot pr comments (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr checks (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr plan (--repo owner/name --pr <number> | --pr-url <url>) [--only-attention] [--json] [--pretty] [--json-envelope]',
+    '  pr-autopilot git status [--cwd <path>] [--json] [--pretty] [--json-envelope]',
     '',
     'Env:',
     '  GITHUB_TOKEN (required for GitHub commands)',
@@ -165,6 +167,32 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
     }
 
     return { code: 0, stdout: formatPrPlanText({ pull, comments, checks }, { mode: 'full' }) };
+  }
+
+  if (top === 'git' && sub === 'status') {
+    const cwd = getFlag(args, '--cwd');
+    const [branch, porcelain] = await Promise.all([
+      getCurrentBranch({ cwd }),
+      getStatusPorcelain({ cwd }),
+    ]);
+
+    const data = { branch, clean: porcelain.length === 0, porcelain };
+
+    if (hasFlag(args, '--json')) {
+      const payload = hasFlag(args, '--json-envelope') ? { schema: 'pr-autopilot/git-status@1', data } : data;
+      return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
+    }
+
+    if (data.clean) {
+      return { code: 0, stdout: `On branch ${data.branch}\nWorking tree clean\n` };
+    }
+
+    const lines = [
+      `On branch ${data.branch}`,
+      `Working tree dirty (${data.porcelain.length})`,
+      ...data.porcelain.map((l) => `  ${l}`),
+    ];
+    return { code: 0, stdout: lines.join('\n') + '\n' };
   }
 
   return { code: 2, stderr: `Unknown command: ${args.join(' ')}\n\n${usage()}` };

@@ -17,6 +17,7 @@ Current schema ids:
 - `pr-autopilot/pr-comments@1` → `ReviewComment[]`
 - `pr-autopilot/pr-checks@1` → `CheckRunSummary[]`
 - `pr-autopilot/pr-plan@1` → `{ pull, comments, checks }`
+- `pr-autopilot/git-status@1` → `{ branch, clean, porcelain }`
 
 `pr plan` JSON shape (when not enveloped):
 
@@ -146,3 +147,28 @@ Checks (2)
 ```
 
 Use `--json` if you want to feed an agent or script.
+
+### `git status`
+`git status` prints a minimal summary of the current branch and working-tree cleanliness.
+
+Example:
+
+```text
+On branch main
+Working tree clean
+```
+
+If dirty, it prints the porcelain lines:
+
+```text
+On branch main
+Working tree dirty (2)
+  M README.md
+  ?? notes.txt
+```
+
+With `--json` it returns:
+
+```json
+{ "branch": "main", "clean": false, "porcelain": ["M README.md", "?? notes.txt"] }
+```

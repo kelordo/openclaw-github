@@ -141,6 +141,43 @@ describe('formatPrPlanText', () => {
     expect(out).toContain('alice (no position): Outdated');
   });
 
+  it('shows diff bucket counts in action-items even when the preview budget truncates a bucket', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const make = (id: number, position: number | null, body: string): ReviewComment => ({
+      id,
+      pullRequestReviewId: 10,
+      userLogin: 'alice',
+      path: 'a.ts',
+      position,
+      body,
+      createdAt: `2026-01-01T00:00:${String(id).padStart(2, '0')}Z`,
+      htmlUrl: `u${id}`,
+    });
+
+    // Preview budget is 3 per file; make 2 positioned + 2 unpositioned so we truncate Outdated.
+    const comments: ReviewComment[] = [
+      make(1, 1, 'c1'),
+      make(2, 2, 'c2'),
+      make(3, null, 'o1'),
+      make(4, null, 'o2'),
+    ];
+    const checks: CheckRunSummary[] = [];
+
+    const out = formatPrPlanText({ pull, comments, checks });
+
+    expect(out).toContain('Current diff (2)');
+    expect(out).toContain('Outdated (2)');
+  });
+
   it('includes a commenter summary in the Summary section', () => {
     const pull: PullDetails = {
       number: 1,
@@ -242,6 +279,50 @@ describe('formatPrPlanText', () => {
 
     expect(out).toContain('- Unknown (1)');
     expect(out).toContain('weird: completed https://example.com/unknown');
+  });
+
+  it('groups action-items checks by suite prefix when present', () => {
+    const pull: PullDetails = {
+      number: 1,
+      title: 'Test PR',
+      state: 'open',
+      merged: false,
+      draft: false,
+      htmlUrl: 'https://github.com/o/r/pull/1',
+      headSha: 'abc123',
+    };
+
+    const comments: ReviewComment[] = [];
+
+    const checks: CheckRunSummary[] = [
+      {
+        id: 1,
+        name: 'CI / test (ubuntu)',
+        status: 'completed',
+        conclusion: 'failure',
+        detailsUrl: 'https://example.com/fail',
+      },
+      {
+        id: 2,
+        name: 'Security / scan',
+        status: 'completed',
+        conclusion: 'failure',
+        detailsUrl: 'https://example.com/sec',
+      },
+    ];
+
+    const out = formatPrPlanText({ pull, comments, checks });
+
+    expect(out).toContain('Action items');
+    expect(out).toContain('Checks needing attention (2)');
+
+    // Suite headers.
+    expect(out).toContain('CI (1)');
+    expect(out).toContain('Security (1)');
+
+    // Check lines underneath their suite.
+    expect(out).toContain('test (ubuntu): completed/failure https://example.com/fail');
+    expect(out).toContain('scan: completed/failure https://example.com/sec');
   });
 
   it('supports --only-attention mode by omitting full comment/check sections', () => {

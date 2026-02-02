@@ -3,8 +3,10 @@ import { createOctokit } from './github/octokit.js';
 import { createGitHubApi } from './github/api.js';
 import { formatJson } from './output.js';
 import { formatChecksGrouped, formatCommentsGrouped, formatPrPlanText, formatPullsGrouped } from './format.js';
+import { getCurrentBranch, getStatusPorcelain } from './git/git.js';
 import { formatCliError } from './errors.js';
 import { readPackageVersion } from './version.js';
+import { runWatch } from './watch.js';
 
 type CommandResult = { code: number; stdout?: string; stderr?: string };
 
@@ -19,6 +21,8 @@ function usage(): string {
     '  pr-autopilot pr comments (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr checks (--repo owner/name --pr <number> | --pr-url <url>) [--json] [--pretty] [--json-envelope]',
     '  pr-autopilot pr plan (--repo owner/name --pr <number> | --pr-url <url>) [--only-attention] [--json] [--pretty] [--json-envelope]',
+    '  pr-autopilot watch [--owner <owner>] [--repo owner/name ...] [--state-file <path>] [--runs-dir <path>] [--json] [--pretty] [--json-envelope]',
+    '  pr-autopilot git status [--cwd <path>] [--json] [--pretty] [--json-envelope]',
     '',
     'Env:',
     '  GITHUB_TOKEN (required for GitHub commands)',
@@ -165,6 +169,65 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
     }
 
     return { code: 0, stdout: formatPrPlanText({ pull, comments, checks }, { mode: 'full' }) };
+  }
+
+  if (top === 'git' && sub === 'status') {
+    const cwd = getFlag(args, '--cwd');
+    const [branch, porcelain] = await Promise.all([
+      getCurrentBranch({ cwd }),
+      getStatusPorcelain({ cwd }),
+    ]);
+
+    const data = { branch, clean: porcelain.length === 0, porcelain };
+
+    if (hasFlag(args, '--json')) {
+      const payload = hasFlag(args, '--json-envelope') ? { schema: 'pr-autopilot/git-status@1', data } : data;
+      return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
+    }
+
+    if (data.clean) {
+      return { code: 0, stdout: `On branch ${data.branch}\nWorking tree clean\n` };
+    }
+
+    const lines = [`On branch ${data.branch}`, `Working tree dirty (${data.porcelain.length})`, ...data.porcelain.map((l) => `  ${l}`)];
+    return { code: 0, stdout: lines.join('\n') + '\n' };
+  }
+
+  if (top === 'watch') {
+    const token = requireToken();
+    const owner = getFlag(args, '--owner') ?? 'kelordo';
+    const statePath = getFlag(args, '--state-file') ?? 'memory/projects/pr-autopilot/state.json';
+    const runsDir = getFlag(args, '--runs-dir') ?? 'memory/projects/pr-autopilot/runs';
+
+    const repoFlags: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '--repo' && args[i + 1]) repoFlags.push(args[i + 1]);
+    }
+
+    const api = createGitHubApi(createOctokit(token));
+
+    const repos = repoFlags.length
+      ? repoFlags
+          .map((slug) => parseRepoSlug(slug))
+          .filter((r) => r.owner === owner)
+          .map((r) => r.repo)
+      : (await api.listReposForOwner({ owner })).map((r) => r.name);
+
+    const nowIso = new Date().toISOString();
+    const res = await runWatch({ api, owner, repos, statePath, runsDir, nowIso });
+
+    if (hasFlag(args, '--json')) {
+      const payload = hasFlag(args, '--json-envelope') ? res : res.changes;
+      return { code: 0, stdout: formatJson(payload, { pretty: hasFlag(args, '--pretty') }) };
+    }
+
+    if (res.changes.length === 0) return { code: 0, stdout: '(no changes)\n' };
+
+    const lines = res.changes.map((c) => {
+      const needed = c.actionNeeded ? 'ACTION NEEDED' : 'no action';
+      return `- ${c.owner}/${c.repo}#${c.pullNumber} ${needed}: ${c.pullUrl} (${c.reasons.join(', ')})`;
+    });
+    return { code: 0, stdout: lines.join('\n') + '\n' };
   }
 
   return { code: 2, stderr: `Unknown command: ${args.join(' ')}\n\n${usage()}` };

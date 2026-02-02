@@ -6,6 +6,9 @@ describe('github api wrapper', () => {
     let calls = 0;
 
     const octokit: OctokitLike = {
+      repos: {
+        listForUser: async () => ({ data: [] }),
+      },
       pulls: {
         list: async () => {
           calls++;
@@ -35,6 +38,9 @@ describe('github api wrapper', () => {
 
   it('listReviewComments maps fields', async () => {
     const octokit: OctokitLike = {
+      repos: {
+        listForUser: async () => ({ data: [] }),
+      },
       pulls: {
         list: async () => ({ data: [] }),
         listReviewComments: async () => ({
@@ -96,6 +102,9 @@ describe('github api wrapper', () => {
 
   it('getPull maps fields', async () => {
     const octokit: OctokitLike = {
+      repos: {
+        listForUser: async () => ({ data: [] }),
+      },
       pulls: {
         list: async () => ({ data: [] }),
         listReviewComments: async () => ({ data: [] }),
@@ -127,6 +136,9 @@ describe('github api wrapper', () => {
     let capturedRef: string | undefined;
 
     const octokit: OctokitLike = {
+      repos: {
+        listForUser: async () => ({ data: [] }),
+      },
       pulls: {
         list: async () => ({ data: [] }),
         listReviewComments: async () => ({ data: [] }),
@@ -152,5 +164,30 @@ describe('github api wrapper', () => {
     expect(runs).toEqual([
       { id: 9, name: 'ci', status: 'completed', conclusion: 'success', detailsUrl: 'd' },
     ]);
+  });
+
+  it('listReposForOwner falls back to user when org endpoint 404s', async () => {
+    const octokit: OctokitLike = {
+      repos: {
+        listForOrg: async () => {
+          const err: any = new Error('Not an org');
+          err.status = 404;
+          throw err;
+        },
+        listForUser: async () => ({ data: [{ name: 'a' }, { name: 'b' }] }),
+      },
+      pulls: {
+        list: async () => ({ data: [] }),
+        listReviewComments: async () => ({ data: [] }),
+        get: async () => ({ data: { head: { sha: 'abc' } } }),
+      },
+      checks: {
+        listForRef: async () => ({ data: { check_runs: [] } }),
+      },
+    };
+
+    const api = createGitHubApi(octokit);
+    const repos = await api.listReposForOwner({ owner: 'kelordo' });
+    expect(repos).toEqual([{ name: 'a' }, { name: 'b' }]);
   });
 });

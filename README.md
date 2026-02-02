@@ -26,16 +26,41 @@ Implemented commands (WIP; output format will change):
 Schemas are documented in [docs/OUTPUT.md](docs/OUTPUT.md).
 
 ## Security
-Never commit tokens. Use env vars or a local `.env`.
+Never commit tokens.
+
+- Prefer env vars (e.g. `export GITHUB_TOKEN=...`).
+- If you keep a local `.env`, note that pr-autopilot currently does **not** auto-load it; use a tool like `dotenvx` or source it in your shell.
+- See `.env.example` for a minimal template.
 
 ## Output
 
 See [docs/OUTPUT.md](docs/OUTPUT.md) for the current text and JSON output conventions.
 
+## Prereqs
+
+- Node.js >= 20 (we use the npm that ships with Node; **pnpm is not required**)
+- Git (for local branch/commit orchestration)
+
+Optional (nice-to-have):
+- `rg` (ripgrep) for fast code search while developing (fallback: `grep -R`)
+  - Debian/Ubuntu: `sudo apt-get install ripgrep`
+  - macOS (Homebrew): `brew install ripgrep`
+- `pnpm` (via `corepack enable && corepack prepare pnpm@latest --activate`) if you prefer it locally (not required)
+
+Convenience:
+- `npm run search -- <pattern> [path]` uses `rg` if available, otherwise falls back to `grep`.
+  - Note: like `rg`/`grep`, it exits with status `1` when there are **no matches**.
+
 ## Dev
 
 ```bash
-npm install
+# Prefer a clean, reproducible install in CI
+npm ci
+
+# One-shot local check (lint + typecheck + tests + build)
+npm run ci
+
+# Or run individual steps
 npm test
 npm run typecheck
 npm run lint

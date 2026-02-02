@@ -20,8 +20,9 @@ function canRun(cmd, args = []) {
 }
 
 // Prefer rg if installed; fall back to grep.
+// Always pass "--" before the pattern so patterns like "-n" aren't treated as flags.
 if (canRun('rg', ['--version'])) {
-  const r = spawnSync('rg', [pattern, searchPath], { stdio: 'inherit' });
+  const r = spawnSync('rg', ['--', pattern, searchPath], { stdio: 'inherit' });
   process.exit(r.status ?? 1);
 }
 
@@ -30,6 +31,7 @@ const grepArgs = [
   '--exclude-dir=node_modules',
   '--exclude-dir=dist',
   '--exclude-dir=.git',
+  '--',
   pattern,
   searchPath,
 ];

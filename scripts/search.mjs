@@ -22,7 +22,16 @@ function canRun(cmd, args = []) {
 // Prefer rg if installed; fall back to grep.
 // Always pass "--" before the pattern so patterns like "-n" aren't treated as flags.
 if (canRun('rg', ['--version'])) {
-  const r = spawnSync('rg', ['--', pattern, searchPath], { stdio: 'inherit' });
+  // Match the grep fallback exclusions for consistency.
+  const rgArgs = [
+    '--glob', '!node_modules/**',
+    '--glob', '!dist/**',
+    '--glob', '!.git/**',
+    '--',
+    pattern,
+    searchPath,
+  ];
+  const r = spawnSync('rg', rgArgs, { stdio: 'inherit' });
   process.exit(r.status ?? 1);
 }
 

@@ -26,7 +26,11 @@ Implemented commands (WIP; output format will change):
 Schemas are documented in [docs/OUTPUT.md](docs/OUTPUT.md).
 
 ## Security
-Never commit tokens. Use env vars or a local `.env`.
+Never commit tokens.
+
+- Prefer env vars (e.g. `export GITHUB_TOKEN=...`).
+- If you keep a local `.env`, note that pr-autopilot currently does **not** auto-load it; use a tool like `dotenvx` or source it in your shell.
+- See `.env.example` for a minimal template.
 
 ## Output
 

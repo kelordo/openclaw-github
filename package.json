@@ -17,6 +17,7 @@
     "format": "prettier -w .",
     "format:check": "prettier -c .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "search": "node scripts/search.mjs",
     "ci": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "keywords": [],

@@ -43,6 +43,8 @@ See [docs/OUTPUT.md](docs/OUTPUT.md) for the current text and JSON output conven
 
 Optional (nice-to-have):
 - `rg` (ripgrep) for fast code search while developing (fallback: `grep -R`)
+  - Debian/Ubuntu: `sudo apt-get install ripgrep`
+  - macOS (Homebrew): `brew install ripgrep`
 - `pnpm` (via `corepack enable && corepack prepare pnpm@latest --activate`) if you prefer it locally (not required)
 
 Convenience:

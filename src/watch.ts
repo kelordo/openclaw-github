@@ -110,6 +110,10 @@ export async function runWatch(params: {
   const changes: WatchChange[] = [];
 
   for (const repo of repos) {
+    // Record that we have seen this repo even if it has no open PRs.
+    state.repos[repo] ??= {};
+    state.repos[repo].prs ??= {};
+
     const prs = await api.listPulls({ owner, repo, state: 'open' });
     for (const pr of prs) {
       const prKey = String(pr.number);

@@ -34,8 +34,11 @@ See [docs/OUTPUT.md](docs/OUTPUT.md) for the current text and JSON output conven
 
 ## Prereqs
 
-- Node.js >= 20
+- Node.js >= 20 (we use the npm that ships with Node; **pnpm is not required**)
 - Git (for local branch/commit orchestration)
+
+Optional (nice-to-have):
+- `rg` (ripgrep) for fast code search while developing
 
 ## Dev
 

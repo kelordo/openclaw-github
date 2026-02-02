@@ -187,7 +187,11 @@ async function dispatch(args: string[], top: string, sub?: string): Promise<Comm
       return { code: 0, stdout: `On branch ${data.branch}\nWorking tree clean\n` };
     }
 
-    const lines = [`On branch ${data.branch}`, `Working tree dirty (${data.porcelain.length})`, ...data.porcelain.map((l) => `  ${l}`)];
+    const lines = [
+      `On branch ${data.branch}`,
+      `Working tree dirty (${data.porcelain.length})`,
+      ...data.porcelain.map((l) => `  ${l}`),
+    ];
     return { code: 0, stdout: lines.join('\n') + '\n' };
   }
 

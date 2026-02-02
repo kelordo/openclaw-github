@@ -164,7 +164,12 @@ describe('formatPrPlanText', () => {
     });
 
     // Preview budget is 3 per file; make 2 positioned + 2 unpositioned so we truncate Outdated.
-    const comments: ReviewComment[] = [make(1, 1, 'c1'), make(2, 2, 'c2'), make(3, null, 'o1'), make(4, null, 'o2')];
+    const comments: ReviewComment[] = [
+      make(1, 1, 'c1'),
+      make(2, 2, 'c2'),
+      make(3, null, 'o1'),
+      make(4, null, 'o2'),
+    ];
     const checks: CheckRunSummary[] = [];
 
     const out = formatPrPlanText({ pull, comments, checks });

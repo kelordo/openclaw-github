@@ -46,6 +46,11 @@ export type PullDetails = {
 };
 
 export type GitHubApi = {
+  /**
+   * Lists repositories for either a user or an org.
+   * Tries org first (GitHub API has separate endpoints), then falls back to user.
+   */
+  listReposForOwner(params: { owner: string }): Promise<{ name: string }[]>;
   listPulls(params: { owner: string; repo: string; state?: 'open' | 'closed' | 'all' }): Promise<PullRequestSummary[]>;
   getPull(params: { owner: string; repo: string; pullNumber: number }): Promise<PullDetails>;
   listReviewComments(params: { owner: string; repo: string; pullNumber: number }): Promise<ReviewComment[]>;
@@ -83,8 +88,28 @@ export type ChecksListForRefArgs = {
   page?: number;
 };
 
+export type ReposListForUserArgs = {
+  username: string;
+  type?: 'owner' | 'all' | 'member';
+  sort?: 'created' | 'updated' | 'pushed' | 'full_name';
+  direction?: 'asc' | 'desc';
+  per_page?: number;
+  page?: number;
+};
+
+export type ReposListForOrgArgs = {
+  org: string;
+  type?: 'all' | 'public' | 'private' | 'forks' | 'sources' | 'member';
+  per_page?: number;
+  page?: number;
+};
+
 // Minimal subset of Octokit that we need; keeps tests easy.
 export type OctokitLike = {
+  repos: {
+    listForUser: (args: ReposListForUserArgs) => Promise<{ data: unknown[] }>;
+    listForOrg: (args: ReposListForOrgArgs) => Promise<{ data: unknown[] }>;
+  };
   pulls: {
     list: (args: PullsListArgs) => Promise<{ data: unknown[] }>;
     listReviewComments: (args: PullsListReviewCommentsArgs) => Promise<{ data: unknown[] }>;
@@ -94,6 +119,10 @@ export type OctokitLike = {
     listForRef: (args: ChecksListForRefArgs) => Promise<{ data: { check_runs: unknown[] } }>;
   };
 };
+
+const RepoSchema = z.object({
+  name: z.string(),
+});
 
 const PullSchema = z.object({
   number: z.number(),
@@ -169,6 +198,40 @@ function parseOrThrow<T>(schema: z.ZodSchema<T>, value: unknown, what: string): 
 }
 
 export function createGitHubApi(octokit: OctokitLike): GitHubApi {
+  async function listReposForOwner({ owner }: { owner: string }) {
+    const perPage = 100;
+
+    const mapRepos = (items: unknown[], what: string) =>
+      items.map((rUnknown) => {
+        const r = parseOrThrow(RepoSchema, rUnknown, what);
+        return { name: r.name };
+      });
+
+    // Try org endpoint first (GitHub uses different APIs for users vs orgs).
+    try {
+      const data: unknown[] = [];
+      for (let page = 1; page <= 100; page++) {
+        const res = await octokit.repos.listForOrg({ org: owner, type: 'all', per_page: perPage, page });
+        data.push(...res.data);
+        if (res.data.length < perPage) break;
+      }
+      return mapRepos(data, 'repos.listForOrg item');
+    } catch (err: any) {
+      // If it's not an org, GitHub returns 404.
+      if (typeof err?.status !== 'number' || err.status !== 404) throw err;
+    }
+
+    // Fallback: treat owner as a user.
+    const data: unknown[] = [];
+    for (let page = 1; page <= 100; page++) {
+      const res = await octokit.repos.listForUser({ username: owner, type: 'owner', per_page: perPage, page });
+      data.push(...res.data);
+      if (res.data.length < perPage) break;
+    }
+
+    return mapRepos(data, 'repos.listForUser item');
+  }
+
   async function listPulls({ owner, repo, state = 'open' }: { owner: string; repo: string; state?: 'open' | 'closed' | 'all' }) {
     const perPage = 100;
     const data: unknown[] = [];
@@ -279,6 +342,7 @@ export function createGitHubApi(octokit: OctokitLike): GitHubApi {
   }
 
   return {
+    listReposForOwner,
     listPulls,
     getPull,
     listReviewComments,

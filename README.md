@@ -32,6 +32,11 @@ Never commit tokens. Use env vars or a local `.env`.
 
 See [docs/OUTPUT.md](docs/OUTPUT.md) for the current text and JSON output conventions.
 
+## Prereqs
+
+- Node.js >= 20
+- Git (for local branch/commit orchestration)
+
 ## Dev
 
 ```bash

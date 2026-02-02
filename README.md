@@ -38,7 +38,8 @@ See [docs/OUTPUT.md](docs/OUTPUT.md) for the current text and JSON output conven
 - Git (for local branch/commit orchestration)
 
 Optional (nice-to-have):
-- `rg` (ripgrep) for fast code search while developing
+- `rg` (ripgrep) for fast code search while developing (fallback: `grep -R`)
+- `pnpm` (via `corepack enable && corepack prepare pnpm@latest --activate`) if you prefer it locally (not required)
 
 ## Dev
 

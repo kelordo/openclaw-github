@@ -35,7 +35,13 @@ See [docs/OUTPUT.md](docs/OUTPUT.md) for the current text and JSON output conven
 ## Dev
 
 ```bash
-npm install
+# Prefer a clean, reproducible install in CI
+npm ci
+
+# One-shot local check (lint + typecheck + tests + build)
+npm run ci
+
+# Or run individual steps
 npm test
 npm run typecheck
 npm run lint
